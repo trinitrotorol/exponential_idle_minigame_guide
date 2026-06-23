@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Exponential Idle ミニゲーム攻略</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Exponential Idle</p>
+        <h1>ミニゲーム攻略</h1>
+      </div>
+      <nav aria-label="ページ内ナビゲーション">
+        <a href="#arrow">Arrow</a>
+        <a href="#coverage">Coverage</a>
+        <a href="#research">Research</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="tool-band" id="arrow" aria-labelledby="arrow-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Solver</p>
+            <h2 id="arrow-title">矢印パズル</h2>
+          </div>
+          <p class="status-pill" id="solver-status">ひな形</p>
+        </div>
+
+        <div class="preset-row" aria-label="難易度プリセット">
+          <button class="icon-button is-active" type="button" data-preset="easy" title="Easy">E</button>
+          <button class="icon-button" type="button" data-preset="medium" title="Medium">M</button>
+          <button class="icon-button" type="button" data-preset="hard" title="Hard">H</button>
+          <button class="icon-button" type="button" data-preset="expert" title="Expert">X</button>
+        </div>
+
+        <div class="solver-layout">
+          <form class="panel controls" id="puzzle-form">
+            <div class="control-grid">
+              <label>
+                盤面
+                <select id="shape-input" name="shape">
+                  <option value="square">Square</option>
+                  <option value="hex">Hex</option>
+                </select>
+              </label>
+              <label class="square-only">
+                高さ
+                <input id="height-input" name="height" type="number" min="1" max="4" value="2">
+              </label>
+              <label class="square-only">
+                幅
+                <input id="width-input" name="width" type="number" min="1" max="4" value="2">
+              </label>
+              <label class="hex-only" hidden>
+                Side
+                <input id="side-input" name="side" type="number" min="1" max="4" value="2">
+              </label>
+              <label>
+                方向数
+                <input id="directions-input" name="directions" type="number" min="2" max="6" value="2">
+              </label>
+              <label>
+                目標
+                <select id="target-input" name="target">
+                  <option value="auto">最短</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="button-row">
+              <button class="primary-button" type="button" id="solve-button">求める</button>
+              <button class="ghost-button" type="button" id="random-button" title="ランダム">↻</button>
+              <button class="ghost-button" type="button" id="reset-button" title="初期化">×</button>
+            </div>
+          </form>
+
+          <section class="panel board-panel" aria-labelledby="board-title">
+            <div class="panel-head">
+              <h3 id="board-title">盤面</h3>
+              <span id="board-meta">2x2 / 2方向</span>
+            </div>
+            <div id="board-root" class="board-root" aria-live="polite"></div>
+          </section>
+
+          <section class="panel result-panel" aria-labelledby="result-title">
+            <div class="panel-head">
+              <h3 id="result-title">解</h3>
+              <span id="result-summary">未計算</span>
+            </div>
+            <div id="result-root" class="result-root">
+              <p class="empty-state">盤面を入力して求めるを押してください。</p>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="content-band" id="coverage" aria-labelledby="coverage-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Roadmap</p>
+            <h2 id="coverage-title">ミニゲーム別カバー範囲</h2>
+          </div>
+        </div>
+        <div class="coverage-grid">
+          <article>
+            <h3>Arrow</h3>
+            <p>Easy / Medium / Hard / Expert の入力欄とソルバーを配置済み。</p>
+          </article>
+          <article>
+            <h3>15-Puzzle</h3>
+            <p>Easy / Medium / Hard の攻略メモ枠。手順化は次の追加対象。</p>
+          </article>
+          <article>
+            <h3>Torus</h3>
+            <p>Hard を中心に既存単体ソルバーがあるため、リンク集と解法整理から追加予定。</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="content-band" id="research" aria-labelledby="research-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Research</p>
+            <h2 id="research-title">既存情報</h2>
+          </div>
+        </div>
+        <ul class="research-list">
+          <li><a href="https://exponential-idle-guides.netlify.app/">Exponential Idle Guides</a> は総合攻略として確認済み。</li>
+          <li><a href="https://github.com/samjones246/exp-torus">exp-torus</a> は Torus 単体ソルバー。</li>
+          <li><a href="https://github.com/facu-et/exponential-idle-puzzle-solver">exponential-idle-puzzle-solver</a> は 15-Puzzle 単体ソルバー。</li>
+          <li><a href="https://github.com/Blue-Beaker/arrow-puzzle-solver">arrow-puzzle-solver</a> は Arrow Hard / Expert 向け単体ソルバー。</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <span>Static guide scaffold</span>
+      <span>2026</span>
+    </footer>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
