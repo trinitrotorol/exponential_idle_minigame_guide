@@ -1,26 +1,28 @@
-# 既存サイト調査メモ
+# Existing Site Research
 
-調査日: 2026-06-24
+Research date: 2026-06-24
 
-## 結論
+## Updated Finding
 
-Exponential Idle 全体の攻略サイトは存在しますが、ミニゲームを全難易度まとめて扱う完成済みサイトは見つかりませんでした。
+The official community guide site has a Minigames page that covers 15-Puzzle, Torus, and Arrow strategies across the available difficulties:
 
-既存公開物は、Arrow / Torus / 15-Puzzle などの単体ソルバーが中心です。したがって、このリポジトリではミニゲーム特化の攻略サイトとして、各難易度のページひな形と矢印パズルソルバーから作り始めます。
+- https://exponential-idle-guides.netlify.app/guides/asd/
 
-## 確認した主な候補
+This repository focuses on an interactive, bilingual solver-oriented version rather than replacing that written guide.
 
-| 候補 | 種別 | メモ |
+## Other Checked Solver Repositories
+
+| Candidate | Type | Notes |
 | --- | --- | --- |
-| [Exponential Idle Guides](https://exponential-idle-guides.netlify.app/) | 総合攻略サイト | ガイド本体は充実。サイトマップとGitHubツリー上ではミニゲーム専用ページは確認できませんでした。 |
-| [exponential-idle-guides/exponential-idle-guides](https://github.com/exponential-idle-guides/exponential-idle-guides) | 総合攻略サイトのリポジトリ | `hard-arrow-lookup.png` はありますが、Arrow / Torus / 15-Puzzle の全難易度ページは見当たりませんでした。 |
-| [samjones246/exp-torus](https://github.com/samjones246/exp-torus) | Torus単体ソルバー | Torus puzzle minigame 用。 |
-| [facu-et/exponential-idle-puzzle-solver](https://github.com/facu-et/exponential-idle-puzzle-solver) | 15-Puzzle単体ソルバー | Easy / Medium / Hard に対応と説明されています。 |
-| [Blue-Beaker/arrow-puzzle-solver](https://github.com/Blue-Beaker/arrow-puzzle-solver) | Arrow単体ソルバー | Hard / Expert に対応と説明されています。 |
-| [OmarBuso/ex-arrow-puzzle](https://github.com/OmarBuso/ex-arrow-puzzle) | Arrow再現・ソルバー | Arrow Puzzle の再現とソルバー。 |
+| [samjones246/exp-torus](https://github.com/samjones246/exp-torus) | Torus auto solver | Uses a Python adaptation of a torus sorting algorithm. |
+| [forsythe/torus_puzzle](https://github.com/forsythe/torus_puzzle) | Torus recreation | Confirms row and column cyclic shift mechanics and 2x2 through 6x6 support. |
+| [facu-et/exponential-idle-puzzle-solver](https://github.com/facu-et/exponential-idle-puzzle-solver) | 15-Puzzle solver reference | README states Easy / Medium / Hard support. |
+| [virtuallyaverage/15-puzzle-autosolver](https://github.com/virtuallyaverage/15-puzzle-autosolver) | 15-Puzzle solver reference | Public repository, minimal contents. |
+| [Blue-Beaker/arrow-puzzle-solver](https://github.com/Blue-Beaker/arrow-puzzle-solver) | Arrow solver | Hard / Expert oriented. |
 
-## サイト方針
+## Site Direction
 
-- ミニゲームごとに「Easy / Medium / Hard / Expert」を並べられる構成にする。
-- まずはユーザー提供の `main.cpp` をもとに Arrow Puzzle を動くツール化する。
-- Arrow Puzzle はゲーム上の制約として、正方形グリッドは最大16マス、六角グリッドは side 4 まで、方向数は2から6に制限する。
+- Keep all solver interactions in browser with no build step.
+- Match the dark in-game minigame modal style.
+- Support Japanese and English text switching.
+- Provide practical solve sequences for Arrow, 15-Puzzle, and Torus.

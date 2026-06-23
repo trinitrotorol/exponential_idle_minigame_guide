@@ -1,17 +1,19 @@
 # Exponential Idle Minigame Guide
 
-Exponential Idle のミニゲーム攻略をまとめるための静的サイトです。
+Exponential Idle のミニゲーム攻略をまとめる静的サイトです。
 
-## 現在の範囲
+## Current Features
 
-- 既存サイト調査の記録
-- ミニゲーム別・難易度別の攻略ページひな形
-- 矢印パズル用の手数ソルバー
+- Arrow Puzzle solver based on the provided C++ approach.
+- 15-Puzzle solver for Easy, Medium, and Hard.
+- Torus Puzzle solver for Easy, Medium, and Hard.
+- Japanese and English language toggle.
+- Dark, modal-style layout inspired by the in-game minigame screens.
 
-## 使い方
+## Usage
 
-`index.html` をブラウザで開くと動きます。ビルド手順は不要です。
+Open `index.html` in a browser. No build step is required.
 
-## 調査メモ
+## Notes
 
-既存サイト・既存ソルバーの確認結果は [docs/research.md](docs/research.md) に記録しています。
+Research notes are kept in [docs/research.md](docs/research.md).
