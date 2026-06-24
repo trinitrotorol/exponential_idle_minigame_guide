@@ -2,6 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "exponential-idel-minigame-guide",
   "compatibility_date": "2026-06-23",
+  "workers_dev": false,
   "assets": {
     "directory": "public"
   },
