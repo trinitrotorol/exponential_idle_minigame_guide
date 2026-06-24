@@ -4,5 +4,11 @@
   "compatibility_date": "2026-06-23",
   "assets": {
     "directory": "public"
-  }
+  },
+  "routes": [
+    {
+      "pattern": "trinitrotorol.com/game-guide/exponential-idle-minigame-guide*",
+      "zone_name": "trinitrotorol.com"
+    }
+  ]
 }
