@@ -2,6 +2,13 @@
 
 Exponential Idle のミニゲーム攻略をまとめる静的サイトです。
 
+- Production URL: https://trinitrotorol.com/game-guide/exponential-idle-minigame-guide/
+- Production branch: `master`
+- Static assets directory: `public`
+- Cloudflare Workers Static Assets で公開しています。
+- ビルド処理は不要です。
+- ローカル確認対象: `public/game-guide/exponential-idle-minigame-guide/index.html`
+
 ## Current Features
 
 - Arrow Puzzle solver based on the provided C++ approach.
@@ -12,7 +19,7 @@ Exponential Idle のミニゲーム攻略をまとめる静的サイトです。
 
 ## Usage
 
-Open `index.html` in a browser. No build step is required.
+Open `public/game-guide/exponential-idle-minigame-guide/index.html` in a browser for local confirmation.
 
 ## Notes
 
