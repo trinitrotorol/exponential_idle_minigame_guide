@@ -51,7 +51,7 @@
       <section class="game-panel is-active" id="arrow-panel" data-panel="arrow">
         <div class="panel-title">
           <h2 data-i18n="arrowTitle">矢印パズル</h2>
-          <p data-i18n="arrowHelp">タイルをタップしてすべての矢印を上向きにします。</p>
+          <p data-i18n="arrowHelp">ゲームの現在盤面と同じ向きになるまで、各マスをタップしてください。入力中は周囲のマスは回転しません。</p>
           <div class="timer-grid">
             <span data-i18n="timeLabel">時間</span><strong>00:00.000</strong>
             <span data-i18n="bestLabel">最高記録</span><strong>00:05.560</strong>
@@ -60,14 +60,6 @@
         <div class="solver-grid">
           <aside class="control-panel">
             <label><span data-i18n="difficultyLabel">難易度</span><select id="arrow-difficulty"></select></label>
-            <label><span data-i18n="shapeLabel">盤面</span><select id="arrow-shape"><option value="square">Square</option><option value="hex">Hex</option></select></label>
-            <div class="two-cols">
-              <label class="arrow-square"><span data-i18n="heightLabel">高さ</span><input id="arrow-height" type="number" min="1" max="4"></label>
-              <label class="arrow-square"><span data-i18n="widthLabel">幅</span><input id="arrow-width" type="number" min="1" max="4"></label>
-              <label class="arrow-hex" hidden><span>Side</span><input id="arrow-side" type="number" min="1" max="4"></label>
-              <label><span data-i18n="directionsLabel">方向数</span><input id="arrow-directions" type="number" min="2" max="6"></label>
-            </div>
-            <label><span data-i18n="targetLabel">目標</span><select id="arrow-target"></select></label>
             <div class="button-row">
               <button class="game-button primary" type="button" id="arrow-solve" data-i18n="solveButton">解く</button>
               <button class="game-button" type="button" id="arrow-random" data-i18n="shuffleButton">シャッフル</button>

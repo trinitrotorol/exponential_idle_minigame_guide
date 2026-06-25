@@ -381,6 +381,52 @@ select {
   cursor: pointer;
 }
 
+.arrow-icon {
+  position: relative;
+  display: inline-block;
+  width: 0.44em;
+  height: 0.86em;
+  transform: rotate(var(--arrow-angle, 0deg));
+  transform-origin: 50% 50%;
+}
+
+.arrow-icon::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0.16em;
+  height: 0.58em;
+  border-radius: 999px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.arrow-icon::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 0;
+  height: 0;
+  border-right: 0.27em solid transparent;
+  border-bottom: 0.34em solid currentColor;
+  border-left: 0.27em solid transparent;
+  transform: translateX(-50%);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .arrow-tile.is-lit,
 .solution-tile:not(.is-zero) {
   background: var(--tile-lit);

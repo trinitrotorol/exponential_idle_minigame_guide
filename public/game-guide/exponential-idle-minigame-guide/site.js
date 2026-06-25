@@ -2,10 +2,54 @@
   "use strict";
 
   const MAX_SOLUTIONS = 1000000;
+  const GAME_SPECS = Object.freeze({
+    arrow: Object.freeze({
+      easy: Object.freeze({ shape: "square", height: 3, width: 3, side: 0, directions: 4 }),
+      medium: Object.freeze({ shape: "square", height: 4, width: 4, side: 0, directions: 4 }),
+      hard: Object.freeze({ shape: "hex", height: 0, width: 0, side: 4, directions: 2 }),
+      expert: Object.freeze({ shape: "hex", height: 0, width: 0, side: 4, directions: 6 }),
+    }),
+    fifteen: Object.freeze({
+      easy: Object.freeze({ size: 3 }),
+      medium: Object.freeze({ size: 4 }),
+      hard: Object.freeze({ size: 5 }),
+    }),
+    torus: Object.freeze({
+      easy: Object.freeze({ size: 3 }),
+      medium: Object.freeze({ size: 5 }),
+      hard: Object.freeze({ size: 6 }),
+    }),
+  });
+
+  function solverError(code) {
+    const error = new Error(code);
+    error.code = code;
+    return error;
+  }
 
   function modValue(value, modulus) {
     const result = value % modulus;
     return result < 0 ? result + modulus : result;
+  }
+
+  function createSeededRandom(seed) {
+    let state = seed >>> 0;
+    return function nextRandom() {
+      state = (state * 1664525 + 1013904223) >>> 0;
+      return state / 0x100000000;
+    };
+  }
+
+  function randomInt(rng, max) {
+    return Math.floor(rng() * max);
+  }
+
+  function getGameSpec(game, difficulty) {
+    const spec = GAME_SPECS[game] && GAME_SPECS[game][difficulty];
+    if (!spec) {
+      throw solverError("invalidDifficulty");
+    }
+    return spec;
   }
 
   function posToRc(pos, size) {
@@ -87,7 +131,7 @@
         return candidate;
       }
     }
-    throw new Error("No modular inverse exists.");
+    throw solverError("noModularInverse");
   }
 
   function solvePrimeSystem(affectedBy, rhs, prime) {
@@ -167,7 +211,7 @@
     for (const basisVector of solutions.basis) {
       const currentSize = result.length;
       if (currentSize * prime > MAX_SOLUTIONS) {
-        throw new Error("Too many candidate solutions for the browser solver.");
+        throw solverError("tooManySolutions");
       }
       for (let i = 0; i < currentSize; i += 1) {
         const base = result[i];
@@ -240,7 +284,7 @@
     const solutions2 = enumeratePrimeSolutions(solvePrimeSystem(affectedBy, rhs.map((v) => modValue(v, 2)), 2), 2);
     const solutions3 = enumeratePrimeSolutions(solvePrimeSystem(affectedBy, rhs.map((v) => modValue(v, 3)), 3), 3);
     if (solutions2.length * solutions3.length > MAX_SOLUTIONS) {
-      throw new Error("Too many candidate solutions for the browser solver.");
+      throw solverError("tooManySolutions");
     }
     for (const mod2Solution of solutions2) {
       for (const mod3Solution of solutions3) {
@@ -250,7 +294,7 @@
               return value;
             }
           }
-          throw new Error("Chinese remainder merge failed.");
+          throw solverError("chineseRemainderFailed");
         });
         considerOperations(best, operations);
       }
@@ -261,7 +305,7 @@
   function buildArrowPuzzle(shape, height, width, side) {
     if (shape === "square") {
       if (height < 1 || height > 4 || width < 1 || width > 4 || height * width > 16) {
-        throw new Error("Square board must be between 1x1 and 4x4.");
+        throw solverError("invalidArrowSpec");
       }
       return {
         rowLengths: buildSquareRowLengths(height, width),
@@ -269,7 +313,7 @@
       };
     }
     if (side < 1 || side > 4) {
-      throw new Error("Hex side must be between 1 and 4.");
+      throw solverError("invalidArrowSpec");
     }
     return {
       rowLengths: buildHexRowLengths(side),
@@ -277,28 +321,81 @@
     };
   }
 
-  function solveArrowPuzzle(options) {
-    const directions = Number(options.directions);
-    const puzzle = buildArrowPuzzle(options.shape, options.height, options.width, options.side);
-    const initial = options.initial.map(Number);
-    const targets = options.target === "auto" ? Array.from({ length: directions }, (_, i) => i) : [Number(options.target)];
-    let bestAnswer = { found: false, target: -1, totalOperations: 0, operations: [] };
-    for (const target of targets) {
-      const rhs = initial.map((value) => modValue(target - value, directions));
-      let best;
-      if (directions === 2 || directions === 3 || directions === 5) {
-        best = solvePrimeModulus(puzzle.affectedBy, rhs, directions);
-      } else if (directions === 4) {
-        best = solveMod4(puzzle.affectedBy, rhs);
-      } else if (directions === 6) {
-        best = solveMod6(puzzle.affectedBy, rhs);
-      } else {
-        throw new Error("Directions must be between 2 and 6.");
-      }
-      if (best.found && (!bestAnswer.found || best.cost < bestAnswer.totalOperations)) {
-        bestAnswer = { found: true, target, totalOperations: best.cost, operations: best.operations };
-      }
+  function normalizeArrowSpec(specOrDifficulty) {
+    if (typeof specOrDifficulty === "string") {
+      return getGameSpec("arrow", specOrDifficulty);
     }
+    if (specOrDifficulty && specOrDifficulty.shape) {
+      return specOrDifficulty;
+    }
+    throw solverError("invalidArrowSpec");
+  }
+
+  function buildArrowPuzzleFromSpec(specOrDifficulty) {
+    const spec = normalizeArrowSpec(specOrDifficulty);
+    return {
+      ...buildArrowPuzzle(spec.shape, spec.height, spec.width, spec.side),
+      spec,
+    };
+  }
+
+  function arrowCellCount(specOrDifficulty) {
+    return buildArrowPuzzleFromSpec(specOrDifficulty).affectedBy.length;
+  }
+
+  function createArrowGoal(specOrDifficulty) {
+    return Array.from({ length: arrowCellCount(specOrDifficulty) }, () => 0);
+  }
+
+  function applyArrowOperations(initial, specOrDifficulty, operations) {
+    const puzzle = buildArrowPuzzleFromSpec(specOrDifficulty);
+    if (initial.length !== puzzle.affectedBy.length || operations.length !== puzzle.affectedBy.length) {
+      throw solverError("invalidArrowBoard");
+    }
+    const values = initial.map((value) => modValue(Number(value), puzzle.spec.directions));
+    for (let cell = 0; cell < puzzle.affectedBy.length; cell += 1) {
+      const delta = affectedSum(puzzle.affectedBy[cell], operations);
+      values[cell] = modValue(values[cell] + delta, puzzle.spec.directions);
+    }
+    return values;
+  }
+
+  function scrambleArrowPuzzle(specOrDifficulty, steps, rng = Math.random) {
+    const puzzle = buildArrowPuzzleFromSpec(specOrDifficulty);
+    const operations = Array.from({ length: puzzle.affectedBy.length }, () => 0);
+    const totalSteps = steps ?? puzzle.affectedBy.length * 3;
+    for (let step = 0; step < totalSteps; step += 1) {
+      const cell = randomInt(rng, operations.length);
+      const amount = 1 + randomInt(rng, puzzle.spec.directions - 1);
+      operations[cell] = modValue(operations[cell] + amount, puzzle.spec.directions);
+    }
+    return applyArrowOperations(createArrowGoal(puzzle.spec), puzzle.spec, operations);
+  }
+
+  function solveArrowPuzzle(options) {
+    const spec = options.difficulty
+      ? getGameSpec("arrow", options.difficulty)
+      : normalizeArrowSpec(options.spec || options);
+    const directions = Number(spec.directions);
+    const puzzle = buildArrowPuzzleFromSpec(spec);
+    const initial = options.initial.map(Number);
+    if (initial.length !== puzzle.affectedBy.length) {
+      throw solverError("invalidArrowBoard");
+    }
+    const rhs = initial.map((value) => modValue(0 - value, directions));
+    let best;
+    if (directions === 2 || directions === 3 || directions === 5) {
+      best = solvePrimeModulus(puzzle.affectedBy, rhs, directions);
+    } else if (directions === 4) {
+      best = solveMod4(puzzle.affectedBy, rhs);
+    } else if (directions === 6) {
+      best = solveMod6(puzzle.affectedBy, rhs);
+    } else {
+      throw solverError("invalidArrowSpec");
+    }
+    const bestAnswer = best.found
+      ? { found: true, target: 0, totalOperations: best.cost, operations: best.operations }
+      : { found: false, target: 0, totalOperations: 0, operations: [] };
     return { ...puzzle, answer: bestAnswer };
   }
 
@@ -316,7 +413,7 @@
     if (move === "L") nextCol -= 1;
     if (move === "R") nextCol += 1;
     if (nextRow < 0 || nextRow >= size || nextCol < 0 || nextCol >= size) {
-      throw new Error("Invalid slide move.");
+      throw solverError("invalidSlideMove");
     }
     const next = rcToPos(nextRow, nextCol, size);
     [board[blank], board[next]] = [board[next], board[blank]];
@@ -335,6 +432,20 @@
     }
     const blankRowFromBottom = size - Math.floor(findValue(board, 0) / size);
     return (blankRowFromBottom % 2 === 0) !== (inversions % 2 === 0);
+  }
+
+  function createFifteenGoal(size) {
+    const board = Array.from({ length: size * size }, (_, i) => i + 1);
+    board[size * size - 1] = 0;
+    return board;
+  }
+
+  function applyFifteenMoves(inputBoard, size, moves) {
+    const board = inputBoard.slice();
+    for (const move of moves) {
+      applyFifteenMove(board, size, move);
+    }
+    return board;
   }
 
   function solveTrackedTiles(board, size, targets, locked) {
@@ -369,7 +480,7 @@
         }
       }
     }
-    throw new Error("Could not place the requested tile group.");
+    throw solverError("tilePlacementFailed");
   }
 
   function manhattanState(arrangement, cells, size) {
@@ -432,16 +543,16 @@
         open.push({ arr: next, g: nextG, h: manhattanState(next, cells, size), path: current.path + move });
       }
     }
-    throw new Error("The remaining 3x3 search exceeded its limit.");
+    throw solverError("remainingSearchLimit");
   }
 
   function solveFifteenPuzzle(inputBoard, size) {
     const expected = Array.from({ length: size * size }, (_, i) => i);
     if (!validatePermutation(inputBoard, expected)) {
-      throw new Error("Use each number exactly once, with 0 as the blank.");
+      throw solverError("invalidFifteenPermutation");
     }
     if (!isFifteenSolvable(inputBoard, size)) {
-      throw new Error("This 15-Puzzle position is not solvable.");
+      throw solverError("unsolvableFifteen");
     }
     const board = inputBoard.slice();
     const locked = new Set();
@@ -487,9 +598,8 @@
     return { moves, finalBoard: board };
   }
 
-  function scrambleFifteen(size, steps) {
-    const board = Array.from({ length: size * size }, (_, i) => i + 1);
-    board[size * size - 1] = 0;
+  function scrambleFifteen(size, steps, rng = Math.random) {
+    const board = createFifteenGoal(size);
     const opposite = { U: "D", D: "U", L: "R", R: "L" };
     let last = "";
     for (let i = 0; i < steps; i += 1) {
@@ -501,7 +611,7 @@
       if (col > 0) moves.push("L");
       if (col < size - 1) moves.push("R");
       moves = moves.filter((move) => move !== opposite[last]);
-      const move = moves[Math.floor(Math.random() * moves.length)];
+      const move = moves[randomInt(rng, moves.length)];
       applyFifteenMove(board, size, move);
       last = move;
     }
@@ -527,12 +637,24 @@
     }
   }
 
+  function createTorusGoal(size) {
+    return Array.from({ length: size }, (_, row) => Array.from({ length: size }, (_v, col) => row * size + col + 1));
+  }
+
+  function applyTorusOperations(inputMatrix, operations) {
+    const matrix = cloneMatrix(inputMatrix);
+    for (const op of operations) {
+      applyTorusMove(matrix, op);
+    }
+    return matrix;
+  }
+
   function solveTorusPuzzle(inputMatrix) {
     const matrix = cloneMatrix(inputMatrix);
     const size = matrix.length;
     const expected = Array.from({ length: size * size }, (_, i) => i + 1);
     if (!validatePermutation(matrix.flat(), expected)) {
-      throw new Error("Use each number from 1 to n^2 exactly once.");
+      throw solverError("invalidTorusPermutation");
     }
     const ops = [];
     const pushOp = (type, index) => {
@@ -650,29 +772,54 @@
     const check = cloneMatrix(inputMatrix);
     for (const op of ops) applyTorusMove(check, op);
     if (!check.flat().every((value, i) => value === i + 1)) {
-      throw new Error("This Torus position is outside the supported reachable set.");
+      throw solverError("unreachableTorus");
     }
     return { operations: ops, finalMatrix: check };
   }
 
-  function scrambleTorus(size, steps) {
-    const matrix = Array.from({ length: size }, (_, row) => Array.from({ length: size }, (_v, col) => row * size + col + 1));
+  function scrambleTorus(size, steps, rng = Math.random) {
+    const matrix = createTorusGoal(size);
     const types = ["U", "D", "L", "R"];
     for (let i = 0; i < steps; i += 1) {
       applyTorusMove(matrix, {
-        type: types[Math.floor(Math.random() * types.length)],
-        index: Math.floor(Math.random() * size),
-        amount: 1 + Math.floor(Math.random() * (size - 1)),
+        type: types[randomInt(rng, types.length)],
+        index: randomInt(rng, size),
+        amount: 1 + randomInt(rng, size - 1),
       });
     }
     return matrix;
   }
 
   const solvers = {
-    arrow: { buildHexRowLengths, buildSquareRowLengths, buildSquareAffectedBy, buildHexAffectedBy, solveArrowPuzzle },
-    fifteen: { solveFifteenPuzzle, scrambleFifteen, applyFifteenMove, isFifteenSolvable },
-    torus: { solveTorusPuzzle, scrambleTorus, applyTorusMove },
-    util: { modValue, cloneMatrix },
+    GAME_SPECS,
+    getGameSpec,
+    arrow: {
+      buildHexRowLengths,
+      buildSquareRowLengths,
+      buildSquareAffectedBy,
+      buildHexAffectedBy,
+      buildArrowPuzzleFromSpec,
+      createArrowGoal,
+      applyArrowOperations,
+      scrambleArrowPuzzle,
+      solveArrowPuzzle,
+    },
+    fifteen: {
+      createFifteenGoal,
+      solveFifteenPuzzle,
+      scrambleFifteen,
+      applyFifteenMove,
+      applyFifteenMoves,
+      isFifteenSolvable,
+    },
+    torus: {
+      createTorusGoal,
+      solveTorusPuzzle,
+      scrambleTorus,
+      applyTorusMove,
+      applyTorusOperations,
+    },
+    util: { modValue, cloneMatrix, createSeededRandom },
   };
 
   if (typeof module !== "undefined" && module.exports) {
@@ -693,7 +840,7 @@
       appTitle: "ミニゲーム攻略",
       appLead: "ゲーム画面に近い見た目で、盤面を入力して解法を確認できます。",
       arrowTitle: "矢印パズル",
-      arrowHelp: "タイルをタップしてすべての矢印を上向きにします。",
+      arrowHelp: "ゲームの現在盤面と同じ向きになるまで、各マスをタップしてください。入力中は周囲のマスは回転しません。",
       fifteenTitle: "15パズル",
       fifteenHelp: "四角をスライドして数字を順番通りに並べます。空白は0で入力します。",
       torusTitle: "トーラスパズル",
@@ -701,11 +848,10 @@
       timeLabel: "時間",
       bestLabel: "最高記録",
       difficultyLabel: "難易度",
-      shapeLabel: "盤面",
-      heightLabel: "高さ",
-      widthLabel: "幅",
-      directionsLabel: "方向数",
-      targetLabel: "目標",
+      easy: "Easy",
+      medium: "Medium",
+      hard: "Hard",
+      expert: "Expert",
       solveButton: "解く",
       shuffleButton: "シャッフル",
       resetButton: "リセット",
@@ -713,11 +859,10 @@
       sourceNote: "参考: Exponential Idle GuidesのMinigamesページと公開ソルバー実装。",
       fifteenNote: "Hardは5x5です。最適解ではなく、層を固定して解く実用手順を出します。",
       torusNote: "Easyは3x3、Mediumは5x5、Hardは6x6です。",
-      autoTarget: "最短",
       pending: "未計算",
       noSolution: "解が見つかりませんでした。",
       solvedIn: "手数",
-      target: "目標",
+      directionState: "向き",
       taps: "タップ回数",
       blankMoves: "空白の動き",
       torusOps: "操作",
@@ -727,12 +872,27 @@
       down: "下",
       left: "左",
       right: "右",
+      moreMoves: "件を省略",
+      invalidDifficulty: "未対応の難易度です。",
+      invalidArrowSpec: "未対応のArrow設定です。",
+      invalidArrowBoard: "Arrow盤面のマス数が難易度と一致しません。",
+      noModularInverse: "Arrowソルバーの内部計算に失敗しました。",
+      tooManySolutions: "候補が多すぎるためブラウザで解けませんでした。",
+      chineseRemainderFailed: "Arrowソルバーの内部計算に失敗しました。",
+      invalidSlideMove: "15パズルの操作が不正です。",
+      tilePlacementFailed: "15パズルの一部タイルを配置できませんでした。",
+      remainingSearchLimit: "15パズルの最後の探索が上限に達しました。",
+      invalidFifteenPermutation: "0を空白として、各数字を1回ずつ入力してください。",
+      unsolvableFifteen: "この15パズル盤面は解けない配置です。",
+      invalidTorusPermutation: "1からn²までの各数字を1回ずつ入力してください。",
+      unreachableTorus: "このTorus盤面は対応している到達可能集合の外です。",
+      unknownError: "解法の計算中にエラーが発生しました。",
     },
     en: {
       appTitle: "Minigame Guide",
       appLead: "Enter a board and inspect the solving steps in a game-like screen.",
       arrowTitle: "Arrow Puzzle",
-      arrowHelp: "Tap tiles until every arrow points upward.",
+      arrowHelp: "Tap each cell until it matches the current in-game board. Adjacent cells do not rotate while entering the board.",
       fifteenTitle: "15-Puzzle",
       fifteenHelp: "Slide numbered tiles into order. Enter 0 for the blank.",
       torusTitle: "Torus Puzzle",
@@ -740,11 +900,10 @@
       timeLabel: "Time",
       bestLabel: "Best Time",
       difficultyLabel: "Difficulty",
-      shapeLabel: "Board",
-      heightLabel: "Height",
-      widthLabel: "Width",
-      directionsLabel: "Directions",
-      targetLabel: "Target",
+      easy: "Easy",
+      medium: "Medium",
+      hard: "Hard",
+      expert: "Expert",
       solveButton: "Solve",
       shuffleButton: "Shuffle",
       resetButton: "Reset",
@@ -752,11 +911,10 @@
       sourceNote: "References: Exponential Idle Guides Minigames page and public solver implementations.",
       fifteenNote: "Hard is 5x5. The solver returns a practical layer-by-layer route, not an optimal route.",
       torusNote: "Easy is 3x3, Medium is 5x5, and Hard is 6x6.",
-      autoTarget: "Shortest",
       pending: "Not calculated",
       noSolution: "No solution was found.",
       solvedIn: "moves",
-      target: "target",
+      directionState: "direction",
       taps: "tap counts",
       blankMoves: "blank moves",
       torusOps: "operations",
@@ -766,34 +924,34 @@
       down: "down",
       left: "left",
       right: "right",
+      moreMoves: "more",
+      invalidDifficulty: "Unsupported difficulty.",
+      invalidArrowSpec: "Unsupported Arrow configuration.",
+      invalidArrowBoard: "The Arrow board size does not match the selected difficulty.",
+      noModularInverse: "The Arrow solver hit an internal calculation error.",
+      tooManySolutions: "Too many candidates for the browser solver.",
+      chineseRemainderFailed: "The Arrow solver hit an internal calculation error.",
+      invalidSlideMove: "Invalid 15-Puzzle slide move.",
+      tilePlacementFailed: "Could not place part of the 15-Puzzle board.",
+      remainingSearchLimit: "The final 15-Puzzle search reached its limit.",
+      invalidFifteenPermutation: "Use each number exactly once, with 0 as the blank.",
+      unsolvableFifteen: "This 15-Puzzle position is not solvable.",
+      invalidTorusPermutation: "Use each number from 1 to n² exactly once.",
+      unreachableTorus: "This Torus position is outside the supported reachable set.",
+      unknownError: "An error occurred while solving.",
     },
   };
 
-  const DIFFICULTIES = {
-    arrow: {
-      easy: { shape: "square", height: 2, width: 2, side: 2, directions: 2 },
-      medium: { shape: "square", height: 3, width: 3, side: 2, directions: 4 },
-      hard: { shape: "hex", height: 4, width: 4, side: 4, directions: 2 },
-      expert: { shape: "hex", height: 4, width: 4, side: 4, directions: 6 },
-    },
-    fifteen: { easy: 3, medium: 4, hard: 5 },
-    torus: { easy: 3, medium: 5, hard: 6 },
-  };
-
-  const arrowLabels = {
-    2: ["↑", "↓"],
-    3: ["↑", "↘", "↙"],
-    4: ["↑", "→", "↓", "←"],
-    5: ["↑", "↗", "↘", "↙", "↖"],
-    6: ["↑", "↗", "→", "↘", "↙", "←"],
-  };
+  const GAME_SPECS = S.GAME_SPECS;
 
   let lang = localStorage.getItem("minigameGuideLang") || "ja";
   let activeGame = "arrow";
-  let arrowState = { ...DIFFICULTIES.arrow.easy, target: "auto", values: [0, 0, 0, 0] };
-  let fifteenSize = DIFFICULTIES.fifteen.easy;
+  let arrowState = { difficulty: "easy", values: S.arrow.createArrowGoal("easy") };
+  let fifteenDifficulty = "easy";
+  let fifteenSize = GAME_SPECS.fifteen.easy.size;
   let fifteenBoard = goalFifteen(fifteenSize);
-  let torusSize = DIFFICULTIES.torus.easy;
+  let torusDifficulty = "easy";
+  let torusSize = GAME_SPECS.torus.easy.size;
   let torusBoard = goalTorus(torusSize);
 
   function t(key) {
@@ -808,23 +966,25 @@
     byId(id).innerHTML = `<p>${message}</p>`;
   }
 
+  function formatSolverError(error) {
+    return t(error && error.code ? error.code : "unknownError");
+  }
+
   function goalFifteen(size) {
-    const board = Array.from({ length: size * size }, (_, i) => i + 1);
-    board[size * size - 1] = 0;
-    return board;
+    return S.fifteen.createFifteenGoal(size);
   }
 
   function goalTorus(size) {
-    return Array.from({ length: size }, (_, row) => Array.from({ length: size }, (_v, col) => row * size + col + 1));
+    return S.torus.createTorusGoal(size);
   }
 
-  function fillDifficulty(select, includeExpert) {
+  function fillDifficulty(select, game) {
     const current = select.value || "easy";
-    const keys = includeExpert ? ["easy", "medium", "hard", "expert"] : ["easy", "medium", "hard"];
+    const keys = Object.keys(GAME_SPECS[game]);
     select.replaceChildren(...keys.map((key) => {
       const option = document.createElement("option");
       option.value = key;
-      option.textContent = key[0].toUpperCase() + key.slice(1);
+      option.textContent = t(key);
       return option;
     }));
     select.value = keys.includes(current) ? current : "easy";
@@ -838,7 +998,9 @@
     for (const button of document.querySelectorAll("[data-lang]")) {
       button.classList.toggle("is-active", button.dataset.lang === lang);
     }
-    renderArrowControls();
+    fillDifficulty(byId("arrow-difficulty"), "arrow");
+    fillDifficulty(byId("fifteen-difficulty"), "fifteen");
+    fillDifficulty(byId("torus-difficulty"), "torus");
     renderAllBoards();
     setResult("arrow-result", t("pending"));
     setResult("fifteen-result", t("pending"));
@@ -855,58 +1017,30 @@
   }
 
   function arrowCellCount() {
-    return arrowRowLengths().reduce((sum, value) => sum + value, 0);
+    return S.arrow.createArrowGoal(arrowState.difficulty).length;
+  }
+
+  function currentArrowSpec() {
+    return S.getGameSpec("arrow", arrowState.difficulty);
   }
 
   function arrowRowLengths() {
-    return arrowState.shape === "square"
-      ? S.arrow.buildSquareRowLengths(arrowState.height, arrowState.width)
-      : S.arrow.buildHexRowLengths(arrowState.side);
+    return S.arrow.buildArrowPuzzleFromSpec(currentArrowSpec()).rowLengths;
   }
 
   function ensureArrowValues(reset) {
     const count = arrowCellCount();
-    arrowState.values = Array.from({ length: count }, (_, i) => reset ? 0 : S.util.modValue(arrowState.values[i] || 0, arrowState.directions));
-  }
-
-  function arrowLabel(value) {
-    return (arrowLabels[arrowState.directions] || [])[value] || String(value + 1);
-  }
-
-  function renderArrowControls() {
-    const target = byId("arrow-target");
-    target.replaceChildren();
-    const auto = document.createElement("option");
-    auto.value = "auto";
-    auto.textContent = t("autoTarget");
-    target.append(auto);
-    for (let i = 0; i < arrowState.directions; i += 1) {
-      const option = document.createElement("option");
-      option.value = String(i);
-      option.textContent = `${arrowLabel(i)} (${i + 1})`;
-      target.append(option);
-    }
-    target.value = arrowState.target;
+    const directions = currentArrowSpec().directions;
+    arrowState.values = Array.from({ length: count }, (_, i) => reset ? 0 : S.util.modValue(arrowState.values[i] || 0, directions));
   }
 
   function syncArrowInputs() {
-    byId("arrow-shape").value = arrowState.shape;
-    byId("arrow-height").value = arrowState.height;
-    byId("arrow-width").value = arrowState.width;
-    byId("arrow-side").value = arrowState.side;
-    byId("arrow-directions").value = arrowState.directions;
-    for (const el of document.querySelectorAll(".arrow-square")) el.hidden = arrowState.shape !== "square";
-    for (const el of document.querySelectorAll(".arrow-hex")) el.hidden = arrowState.shape === "square";
-    renderArrowControls();
+    byId("arrow-difficulty").value = arrowState.difficulty;
+    ensureArrowValues(false);
   }
 
   function readArrowInputs() {
-    arrowState.shape = byId("arrow-shape").value;
-    arrowState.height = Math.max(1, Math.min(4, Number(byId("arrow-height").value) || 2));
-    arrowState.width = Math.max(1, Math.min(4, Number(byId("arrow-width").value) || 2));
-    arrowState.side = Math.max(1, Math.min(4, Number(byId("arrow-side").value) || 2));
-    arrowState.directions = Math.max(2, Math.min(6, Number(byId("arrow-directions").value) || 2));
-    arrowState.target = byId("arrow-target").value;
+    arrowState.difficulty = byId("arrow-difficulty").value;
     ensureArrowValues(false);
     syncArrowInputs();
   }
@@ -914,11 +1048,12 @@
   function renderArrowBoard() {
     const root = byId("arrow-board");
     const rows = arrowRowLengths();
+    const spec = currentArrowSpec();
     root.replaceChildren();
-    if (arrowState.shape === "square") {
+    if (spec.shape === "square") {
       const board = document.createElement("div");
       board.className = "square-board";
-      board.style.gridTemplateColumns = `repeat(${arrowState.width}, minmax(0, 1fr))`;
+      board.style.gridTemplateColumns = `repeat(${spec.width}, minmax(0, 1fr))`;
       arrowState.values.forEach((value, index) => board.append(arrowButton(value, index)));
       root.append(board);
       return;
@@ -938,13 +1073,24 @@
     root.append(board);
   }
 
+  function arrowAngle(value) {
+    return value * (360 / currentArrowSpec().directions);
+  }
+
   function arrowButton(value, index) {
     const button = document.createElement("button");
     button.type = "button";
     button.className = `arrow-tile${value ? " is-lit" : ""}`;
-    button.textContent = arrowLabel(value);
+    button.setAttribute("aria-label", `${t("directionState")} ${value}`);
+    const icon = document.createElement("span");
+    icon.className = "arrow-icon";
+    icon.style.setProperty("--arrow-angle", `${arrowAngle(value)}deg`);
+    const label = document.createElement("span");
+    label.className = "sr-only";
+    label.textContent = `${t("directionState")} ${value}`;
+    button.replaceChildren(icon, label);
     button.addEventListener("click", () => {
-      arrowState.values[index] = S.util.modValue(arrowState.values[index] + 1, arrowState.directions);
+      arrowState.values[index] = S.util.modValue(arrowState.values[index] + 1, currentArrowSpec().directions);
       renderArrowBoard();
       setResult("arrow-result", t("pending"));
     });
@@ -953,9 +1099,10 @@
 
   function renderOperationBoard(rows, operations) {
     const board = document.createElement("div");
-    board.className = arrowState.shape === "square" ? "square-board mini-board" : "hex-board mini-board";
-    if (arrowState.shape === "square") {
-      board.style.gridTemplateColumns = `repeat(${arrowState.width}, minmax(0, 1fr))`;
+    const spec = currentArrowSpec();
+    board.className = spec.shape === "square" ? "square-board mini-board" : "hex-board mini-board";
+    if (spec.shape === "square") {
+      board.style.gridTemplateColumns = `repeat(${spec.width}, minmax(0, 1fr))`;
       for (const value of operations) {
         const tile = document.createElement("span");
         tile.className = `solution-tile${value === 0 ? " is-zero" : ""}`;
@@ -985,35 +1132,23 @@
     readArrowInputs();
     const result = byId("arrow-result");
     try {
-      const solution = S.arrow.solveArrowPuzzle({ ...arrowState, initial: arrowState.values });
+      const solution = S.arrow.solveArrowPuzzle({ difficulty: arrowState.difficulty, initial: arrowState.values });
       if (!solution.answer.found) {
         setResult("arrow-result", t("noSolution"));
         return;
       }
       result.replaceChildren();
       const summary = document.createElement("p");
-      summary.innerHTML = `<strong>${t("target")}:</strong> ${arrowLabel(solution.answer.target)}<br><strong>${t("solvedIn")}:</strong> ${solution.answer.totalOperations}`;
+      summary.innerHTML = `<strong>${t("solvedIn")}:</strong> ${solution.answer.totalOperations}`;
       result.append(summary, renderOperationBoard(solution.rowLengths, solution.answer.operations));
     } catch (error) {
-      setResult("arrow-result", error.message);
+      setResult("arrow-result", formatSolverError(error));
     }
   }
 
   function shuffleArrow() {
     readArrowInputs();
-    const puzzle = arrowState.shape === "square"
-      ? S.arrow.buildSquareAffectedBy(arrowState.height, arrowState.width)
-      : S.arrow.buildHexAffectedBy(arrowState.side);
-    const target = Math.floor(Math.random() * arrowState.directions);
-    const operations = arrowState.values.map(() => Math.floor(Math.random() * arrowState.directions));
-    arrowState.values = arrowState.values.map(() => target);
-    for (let op = 0; op < operations.length; op += 1) {
-      for (let cell = 0; cell < puzzle.length; cell += 1) {
-        if (puzzle[cell].includes(op)) {
-          arrowState.values[cell] = S.util.modValue(arrowState.values[cell] - operations[op], arrowState.directions);
-        }
-      }
-    }
+    arrowState.values = S.arrow.scrambleArrowPuzzle(arrowState.difficulty, arrowCellCount() * 4);
     renderArrowBoard();
     setResult("arrow-result", t("pending"));
   }
@@ -1048,7 +1183,7 @@
       renderFifteenBoard();
       renderMoveResult("fifteen-result", t("blankMoves"), solution.moves);
     } catch (error) {
-      setResult("fifteen-result", error.message);
+      setResult("fifteen-result", formatSolverError(error));
     }
   }
 
@@ -1066,7 +1201,7 @@
     });
     if (moves.length > 160) {
       const item = document.createElement("li");
-      item.textContent = `... ${moves.length - 160} more`;
+      item.textContent = `... ${moves.length - 160} ${t("moreMoves")}`;
       list.append(item);
     }
     root.append(summary, list);
@@ -1105,7 +1240,7 @@
       const moves = solution.operations.map(formatTorusOp);
       renderMoveResult("torus-result", t("torusOps"), moves);
     } catch (error) {
-      setResult("torus-result", error.message);
+      setResult("torus-result", formatSolverError(error));
     }
   }
 
@@ -1123,34 +1258,29 @@
   }
 
   function init() {
-    fillDifficulty(byId("arrow-difficulty"), true);
-    fillDifficulty(byId("fifteen-difficulty"), false);
-    fillDifficulty(byId("torus-difficulty"), false);
+    fillDifficulty(byId("arrow-difficulty"), "arrow");
+    fillDifficulty(byId("fifteen-difficulty"), "fifteen");
+    fillDifficulty(byId("torus-difficulty"), "torus");
     byId("arrow-difficulty").addEventListener("change", (event) => {
-      arrowState = { ...arrowState, ...DIFFICULTIES.arrow[event.target.value], target: "auto" };
+      arrowState = { difficulty: event.target.value, values: S.arrow.createArrowGoal(event.target.value) };
       ensureArrowValues(true);
       renderAllBoards();
       setResult("arrow-result", t("pending"));
     });
     byId("fifteen-difficulty").addEventListener("change", (event) => {
-      fifteenSize = DIFFICULTIES.fifteen[event.target.value];
+      fifteenDifficulty = event.target.value;
+      fifteenSize = GAME_SPECS.fifteen[fifteenDifficulty].size;
       fifteenBoard = goalFifteen(fifteenSize);
       renderFifteenBoard();
       setResult("fifteen-result", t("pending"));
     });
     byId("torus-difficulty").addEventListener("change", (event) => {
-      torusSize = DIFFICULTIES.torus[event.target.value];
+      torusDifficulty = event.target.value;
+      torusSize = GAME_SPECS.torus[torusDifficulty].size;
       torusBoard = goalTorus(torusSize);
       renderTorusBoard();
       setResult("torus-result", t("pending"));
     });
-    for (const id of ["arrow-shape", "arrow-height", "arrow-width", "arrow-side", "arrow-directions", "arrow-target"]) {
-      byId(id).addEventListener("change", () => {
-        readArrowInputs();
-        renderArrowBoard();
-        setResult("arrow-result", t("pending"));
-      });
-    }
     byId("arrow-solve").addEventListener("click", solveArrow);
     byId("arrow-random").addEventListener("click", shuffleArrow);
     byId("arrow-reset").addEventListener("click", () => {
