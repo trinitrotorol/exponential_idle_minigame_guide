@@ -372,6 +372,33 @@
     return applyArrowOperations(createArrowGoal(puzzle.spec), puzzle.spec, operations);
   }
 
+  function expandArrowOperations(operations) {
+    const taps = [];
+    operations.forEach((count, cell) => {
+      for (let index = 0; index < count; index += 1) {
+        taps.push(cell);
+      }
+    });
+    return taps;
+  }
+
+  function applyArrowTap(initial, specOrDifficulty, cell) {
+    const operations = Array.from({ length: arrowCellCount(specOrDifficulty) }, () => 0);
+    operations[cell] = 1;
+    return applyArrowOperations(initial, specOrDifficulty, operations);
+  }
+
+  function applyArrowInputTap(initial, specOrDifficulty, cell) {
+    const spec = normalizeArrowSpec(specOrDifficulty);
+    const values = initial.slice();
+    values[cell] = modValue(values[cell] + 1, spec.directions);
+    return values;
+  }
+
+  function countArrowPressCells(operations) {
+    return operations.filter((count) => count > 0).length;
+  }
+
   function solveArrowPuzzle(options) {
     const spec = options.difficulty
       ? getGameSpec("arrow", options.difficulty)
@@ -446,6 +473,41 @@
       applyFifteenMove(board, size, move);
     }
     return board;
+  }
+
+  function invertFifteenMove(move) {
+    return { U: "D", D: "U", L: "R", R: "L" }[move];
+  }
+
+  function getFifteenStep(inputBoard, size, move) {
+    const blankIndex = findValue(inputBoard, 0);
+    const [row, col] = posToRc(blankIndex, size);
+    let tileRow = row;
+    let tileCol = col;
+    if (move === "U") tileRow -= 1;
+    if (move === "D") tileRow += 1;
+    if (move === "L") tileCol -= 1;
+    if (move === "R") tileCol += 1;
+    if (tileRow < 0 || tileRow >= size || tileCol < 0 || tileCol >= size) {
+      throw solverError("invalidSlideMove");
+    }
+    const tileIndex = rcToPos(tileRow, tileCol, size);
+    return {
+      move,
+      inverseMove: invertFifteenMove(move),
+      tile: inputBoard[tileIndex],
+      from: tileIndex,
+      to: blankIndex,
+      blank: blankIndex,
+    };
+  }
+
+  function applyFifteenStep(inputBoard, size, move) {
+    return applyFifteenMoves(inputBoard, size, [move]);
+  }
+
+  function formatFifteenDisplayValue(value) {
+    return value === 0 ? "" : String(value);
   }
 
   function solveTrackedTiles(board, size, targets, locked) {
@@ -649,6 +711,104 @@
     return matrix;
   }
 
+  function invertTorusOperation(op) {
+    return {
+      type: { U: "D", D: "U", L: "R", R: "L" }[op.type],
+      index: op.index,
+      amount: op.amount,
+    };
+  }
+
+  function getTorusOperationInfo(op) {
+    return {
+      axis: op.type === "L" || op.type === "R" ? "row" : "column",
+      index: op.index + 1,
+      direction: op.type,
+      amount: op.amount,
+    };
+  }
+
+  function applyTorusOperation(inputMatrix, op) {
+    return applyTorusOperations(inputMatrix, [op]);
+  }
+
+  function mergeTorusOperations(operations, size) {
+    const opposite = { U: "D", D: "U", L: "R", R: "L" };
+    const result = [];
+    for (const op of operations) {
+      let amount = modValue(op.amount, size);
+      if (amount === 0) continue;
+      const last = result[result.length - 1];
+      if (last && last.index === op.index && (last.type === op.type || last.type === opposite[op.type])) {
+        const signed = last.type === op.type ? last.amount + amount : last.amount - amount;
+        if (signed === 0) {
+          result.pop();
+        } else if (signed > 0) {
+          last.amount = modValue(signed, size);
+          if (last.amount === 0) result.pop();
+        } else {
+          last.type = opposite[last.type];
+          last.amount = modValue(-signed, size);
+          if (last.amount === 0) result.pop();
+        }
+      } else {
+        result.push({ type: op.type, index: op.index, amount });
+      }
+    }
+    return result;
+  }
+
+  function parseBoardValues(text) {
+    return text.trim().split(/[\s,\t\r\n]+/).filter(Boolean).map((token) => Number(token));
+  }
+
+  function analyzePermutation(values, expected) {
+    const expectedSet = new Set(expected);
+    const seen = new Map();
+    const duplicateIndices = new Set();
+    const outOfRangeIndices = new Set();
+    values.forEach((value, index) => {
+      if (!Number.isInteger(value) || !expectedSet.has(value)) {
+        outOfRangeIndices.add(index);
+        return;
+      }
+      if (seen.has(value)) {
+        duplicateIndices.add(seen.get(value));
+        duplicateIndices.add(index);
+      } else {
+        seen.set(value, index);
+      }
+    });
+    const missingValues = expected.filter((value) => !seen.has(value));
+    const codes = [];
+    if (duplicateIndices.size) codes.push("duplicateNumbers");
+    if (outOfRangeIndices.size) codes.push("outOfRangeNumbers");
+    if (missingValues.length) codes.push("missingNumbers");
+    return {
+      valid: codes.length === 0 && values.length === expected.length,
+      codes,
+      duplicateIndices: Array.from(duplicateIndices),
+      outOfRangeIndices: Array.from(outOfRangeIndices),
+      invalidIndices: Array.from(new Set([...duplicateIndices, ...outOfRangeIndices])),
+      missingValues,
+    };
+  }
+
+  function validateFifteenInput(values, size) {
+    return analyzePermutation(values, Array.from({ length: size * size }, (_, i) => i));
+  }
+
+  function validateTorusInput(values, size) {
+    return analyzePermutation(values, Array.from({ length: size * size }, (_, i) => i + 1));
+  }
+
+  function validatePastedValues(values, expectedLength) {
+    if (values.length !== expectedLength) {
+      return { valid: false, code: "pasteValueCountMismatch" };
+    }
+    return { valid: true, code: "" };
+  }
+
   function solveTorusPuzzle(inputMatrix) {
     const matrix = cloneMatrix(inputMatrix);
     const size = matrix.length;
@@ -801,6 +961,10 @@
       buildArrowPuzzleFromSpec,
       createArrowGoal,
       applyArrowOperations,
+      applyArrowTap,
+      applyArrowInputTap,
+      expandArrowOperations,
+      countArrowPressCells,
       scrambleArrowPuzzle,
       solveArrowPuzzle,
     },
@@ -810,6 +974,10 @@
       scrambleFifteen,
       applyFifteenMove,
       applyFifteenMoves,
+      applyFifteenStep,
+      getFifteenStep,
+      invertFifteenMove,
+      formatFifteenDisplayValue,
       isFifteenSolvable,
     },
     torus: {
@@ -817,8 +985,13 @@
       solveTorusPuzzle,
       scrambleTorus,
       applyTorusMove,
+      applyTorusOperation,
       applyTorusOperations,
+      invertTorusOperation,
+      getTorusOperationInfo,
+      mergeTorusOperations,
     },
+    input: { parseBoardValues, analyzePermutation, validateFifteenInput, validateTorusInput, validatePastedValues },
     util: { modValue, cloneMatrix, createSeededRandom },
   };
 
@@ -862,6 +1035,26 @@
       pending: "未計算",
       noSolution: "解が見つかりませんでした。",
       solvedIn: "手数",
+      statusLabel: "状態",
+      statusIdle: "未計算",
+      statusSolving: "計算中",
+      statusSolved: "解答済み",
+      statusError: "入力にエラーがあります",
+      nextOperation: "次の操作",
+      firstStep: "最初へ",
+      previousStep: "前へ",
+      nextStep: "次へ",
+      lastStep: "最後へ",
+      restoreInput: "入力盤面に戻す",
+      stepCounter: "手順",
+      completed: "完了済み",
+      incomplete: "未完了",
+      arrowOrderNote: "タップ順は任意。ただしステップ表示では確認しやすい順に表示しています。",
+      totalTaps: "総タップ数",
+      pressedCells: "押すマス数",
+      currentStep: "現在ステップ",
+      tapCell: "強調されたマスをタップ",
+      remainingTaps: "残り",
       directionState: "向き",
       taps: "タップ回数",
       blankMoves: "空白の動き",
@@ -872,6 +1065,15 @@
       down: "下",
       left: "左",
       right: "右",
+      blank: "空白",
+      moveTileIntoBlank: "{tile}を空白へ移動",
+      blankMove: "空白: {direction}",
+      shiftRow: "{index}行目を{direction}{amount}",
+      shiftColumn: "{index}列目を{direction}{amount}",
+      duplicateNumbers: "数字が重複しています",
+      missingNumbers: "数字が不足しています",
+      outOfRangeNumbers: "範囲外の数字があります",
+      pasteValueCountMismatch: "貼り付けた値の数が盤面サイズと一致しません",
       moreMoves: "件を省略",
       invalidDifficulty: "未対応の難易度です。",
       invalidArrowSpec: "未対応のArrow設定です。",
@@ -914,6 +1116,26 @@
       pending: "Not calculated",
       noSolution: "No solution was found.",
       solvedIn: "moves",
+      statusLabel: "Status",
+      statusIdle: "Idle",
+      statusSolving: "Solving",
+      statusSolved: "Solved",
+      statusError: "Input has errors",
+      nextOperation: "Next operation",
+      firstStep: "First",
+      previousStep: "Previous",
+      nextStep: "Next",
+      lastStep: "Last",
+      restoreInput: "Restore input board",
+      stepCounter: "Step",
+      completed: "Complete",
+      incomplete: "Incomplete",
+      arrowOrderNote: "Tap order is arbitrary. The step display uses an easy-to-check order.",
+      totalTaps: "Total taps",
+      pressedCells: "Pressed cells",
+      currentStep: "Current step",
+      tapCell: "Tap the highlighted cell",
+      remainingTaps: "remaining",
       directionState: "direction",
       taps: "tap counts",
       blankMoves: "blank moves",
@@ -924,6 +1146,15 @@
       down: "down",
       left: "left",
       right: "right",
+      blank: "blank",
+      moveTileIntoBlank: "Move {tile} into the blank",
+      blankMove: "Blank: {direction}",
+      shiftRow: "Shift row {index} {direction} by {amount}",
+      shiftColumn: "Shift column {index} {direction} by {amount}",
+      duplicateNumbers: "Numbers are duplicated",
+      missingNumbers: "Numbers are missing",
+      outOfRangeNumbers: "Numbers are out of range",
+      pasteValueCountMismatch: "The pasted value count does not match the board size",
       moreMoves: "more",
       invalidDifficulty: "Unsupported difficulty.",
       invalidArrowSpec: "Unsupported Arrow configuration.",
@@ -946,16 +1177,40 @@
 
   let lang = localStorage.getItem("minigameGuideLang") || "ja";
   let activeGame = "arrow";
-  let arrowState = { difficulty: "easy", values: S.arrow.createArrowGoal("easy") };
+
+  function createPlaybackState(board) {
+    return {
+      originalBoard: copyBoard(board),
+      previewBoard: copyBoard(board),
+      solution: [],
+      currentStep: 0,
+      solveStatus: "idle",
+      errorCodes: [],
+      invalidIndices: [],
+      nextAction: null,
+    };
+  }
+
+  function copyBoard(board) {
+    return Array.isArray(board[0]) ? board.map((row) => row.slice()) : board.slice();
+  }
+
+  let arrowState = { difficulty: "easy", ...createPlaybackState(S.arrow.createArrowGoal("easy")) };
   let fifteenDifficulty = "easy";
   let fifteenSize = GAME_SPECS.fifteen.easy.size;
-  let fifteenBoard = goalFifteen(fifteenSize);
+  let fifteenState = createPlaybackState(goalFifteen(fifteenSize));
   let torusDifficulty = "easy";
   let torusSize = GAME_SPECS.torus.easy.size;
-  let torusBoard = goalTorus(torusSize);
+  let torusState = createPlaybackState(goalTorus(torusSize));
 
   function t(key) {
     return text[lang][key] || text.en[key] || key;
+  }
+
+  function tt(key, values) {
+    return Object.entries(values).reduce((message, [name, value]) => {
+      return message.replace(`{${name}}`, String(value));
+    }, t(key));
   }
 
   function byId(id) {
@@ -968,6 +1223,51 @@
 
   function formatSolverError(error) {
     return t(error && error.code ? error.code : "unknownError");
+  }
+
+  function statusText(status) {
+    return t(`status${status[0].toUpperCase()}${status.slice(1)}`);
+  }
+
+  function setStatus(id, state, detail = "") {
+    const status = byId(id);
+    status.innerHTML = `<strong>${t("statusLabel")}:</strong> ${statusText(state.solveStatus)}${detail ? `<br>${detail}` : ""}`;
+  }
+
+  function validationMessage(validation) {
+    if (!validation || validation.codes.length === 0) return "";
+    return validation.codes.map((code) => t(code)).join(" / ");
+  }
+
+  function clearSolutionState(state) {
+    state.solution = [];
+    state.currentStep = 0;
+    state.previewBoard = copyBoard(state.originalBoard);
+    state.nextAction = null;
+    state.solveStatus = state.errorCodes.length ? "error" : "idle";
+  }
+
+  function applyBoardSteps(state, startBoard, steps, applyStep) {
+    let board = copyBoard(startBoard);
+    for (let index = 0; index < steps; index += 1) {
+      board = applyStep(board, state.solution[index]);
+    }
+    state.previewBoard = board;
+    state.currentStep = steps;
+  }
+
+  function clampStep(state, step) {
+    return Math.max(0, Math.min(state.solution.length, step));
+  }
+
+  function movePlayback(state, step, applyStep) {
+    applyBoardSteps(state, state.originalBoard, clampStep(state, step), applyStep);
+  }
+
+  function currentOperationText(state, describeStep) {
+    if (!state.solution.length) return t("pending");
+    if (state.currentStep >= state.solution.length) return t("completed");
+    return describeStep(state);
   }
 
   function goalFifteen(size) {
@@ -1002,9 +1302,6 @@
     fillDifficulty(byId("fifteen-difficulty"), "fifteen");
     fillDifficulty(byId("torus-difficulty"), "torus");
     renderAllBoards();
-    setResult("arrow-result", t("pending"));
-    setResult("fifteen-result", t("pending"));
-    setResult("torus-result", t("pending"));
   }
 
   function renderTabs() {
@@ -1031,7 +1328,9 @@
   function ensureArrowValues(reset) {
     const count = arrowCellCount();
     const directions = currentArrowSpec().directions;
-    arrowState.values = Array.from({ length: count }, (_, i) => reset ? 0 : S.util.modValue(arrowState.values[i] || 0, directions));
+    const values = Array.from({ length: count }, (_, i) => reset ? 0 : S.util.modValue(arrowState.originalBoard[i] || 0, directions));
+    arrowState.originalBoard = values;
+    arrowState.previewBoard = values.slice();
   }
 
   function syncArrowInputs() {
@@ -1054,7 +1353,7 @@
       const board = document.createElement("div");
       board.className = "square-board";
       board.style.gridTemplateColumns = `repeat(${spec.width}, minmax(0, 1fr))`;
-      arrowState.values.forEach((value, index) => board.append(arrowButton(value, index)));
+      arrowState.previewBoard.forEach((value, index) => board.append(arrowButton(value, index)));
       root.append(board);
       return;
     }
@@ -1065,7 +1364,7 @@
       const row = document.createElement("div");
       row.className = "hex-row";
       for (let col = 0; col < rowLength; col += 1) {
-        row.append(arrowButton(arrowState.values[index], index));
+        row.append(arrowButton(arrowState.previewBoard[index], index));
         index += 1;
       }
       board.append(row);
@@ -1081,6 +1380,10 @@
     const button = document.createElement("button");
     button.type = "button";
     button.className = `arrow-tile${value ? " is-lit" : ""}`;
+    const nextTap = arrowState.solution[arrowState.currentStep];
+    if (nextTap === index) {
+      button.classList.add("is-next-action");
+    }
     button.setAttribute("aria-label", `${t("directionState")} ${value}`);
     const icon = document.createElement("span");
     icon.className = "arrow-icon";
@@ -1089,10 +1392,19 @@
     label.className = "sr-only";
     label.textContent = `${t("directionState")} ${value}`;
     button.replaceChildren(icon, label);
+    const remaining = arrowState.solution.slice(arrowState.currentStep).filter((cell) => cell === index).length;
+    if (remaining > 1) {
+      const badge = document.createElement("span");
+      badge.className = "tap-badge";
+      badge.textContent = `x${remaining}`;
+      button.append(badge);
+    }
     button.addEventListener("click", () => {
-      arrowState.values[index] = S.util.modValue(arrowState.values[index] + 1, currentArrowSpec().directions);
+      arrowState.originalBoard = S.arrow.applyArrowInputTap(arrowState.originalBoard, arrowState.difficulty, index);
+      arrowState.previewBoard = arrowState.originalBoard.slice();
+      clearSolutionState(arrowState);
       renderArrowBoard();
-      setResult("arrow-result", t("pending"));
+      renderArrowPlayback();
     });
     return button;
   }
@@ -1131,60 +1443,304 @@
   function solveArrow() {
     readArrowInputs();
     const result = byId("arrow-result");
+    byId("arrow-solve").disabled = true;
+    arrowState.solveStatus = "solving";
+    renderArrowPlayback();
     try {
-      const solution = S.arrow.solveArrowPuzzle({ difficulty: arrowState.difficulty, initial: arrowState.values });
+      const solution = S.arrow.solveArrowPuzzle({ difficulty: arrowState.difficulty, initial: arrowState.originalBoard });
       if (!solution.answer.found) {
-        setResult("arrow-result", t("noSolution"));
+        arrowState.solveStatus = "error";
+        renderArrowPlayback(t("noSolution"));
         return;
       }
+      arrowState.solution = S.arrow.expandArrowOperations(solution.answer.operations);
+      arrowState.currentStep = 0;
+      arrowState.previewBoard = arrowState.originalBoard.slice();
+      arrowState.solveStatus = "solved";
       result.replaceChildren();
-      const summary = document.createElement("p");
-      summary.innerHTML = `<strong>${t("solvedIn")}:</strong> ${solution.answer.totalOperations}`;
-      result.append(summary, renderOperationBoard(solution.rowLengths, solution.answer.operations));
+      renderArrowPlayback();
+      renderArrowBoard();
     } catch (error) {
-      setResult("arrow-result", formatSolverError(error));
+      arrowState.solveStatus = "error";
+      renderArrowPlayback(formatSolverError(error));
+    } finally {
+      byId("arrow-solve").disabled = false;
     }
   }
 
   function shuffleArrow() {
     readArrowInputs();
-    arrowState.values = S.arrow.scrambleArrowPuzzle(arrowState.difficulty, arrowCellCount() * 4);
+    arrowState.originalBoard = S.arrow.scrambleArrowPuzzle(arrowState.difficulty, arrowCellCount() * 4);
+    clearSolutionState(arrowState);
     renderArrowBoard();
-    setResult("arrow-result", t("pending"));
+    renderArrowPlayback();
+  }
+
+  function createPlaybackControls(state, onMove, onRestore) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "playback-controls";
+    const counter = document.createElement("p");
+    counter.className = "operation-copy";
+    counter.innerHTML = `<strong>${t("stepCounter")}:</strong> ${state.currentStep} / ${state.solution.length}`;
+    const buttons = document.createElement("div");
+    buttons.className = "playback-buttons";
+    const specs = [
+      [t("firstStep"), () => onMove(0), state.currentStep === 0],
+      [t("previousStep"), () => onMove(state.currentStep - 1), state.currentStep === 0],
+      [t("nextStep"), () => onMove(state.currentStep + 1), state.currentStep >= state.solution.length],
+      [t("lastStep"), () => onMove(state.solution.length), state.currentStep >= state.solution.length],
+      [t("restoreInput"), () => onRestore(), false],
+    ];
+    for (const [label, action, disabled] of specs) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "game-button";
+      button.textContent = label;
+      button.disabled = disabled;
+      button.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        window.setTimeout(action, 0);
+      });
+      buttons.append(button);
+    }
+    wrapper.append(counter, buttons);
+    return wrapper;
+  }
+
+  function moveArrowPlayback(step) {
+    movePlayback(arrowState, step, (board, cell) => S.arrow.applyArrowTap(board, arrowState.difficulty, cell));
+    renderArrowBoard();
+    renderArrowPlayback();
+  }
+
+  function restoreArrowInput() {
+    moveArrowPlayback(0);
+  }
+
+  function renderArrowPlayback(message = "") {
+    const root = byId("arrow-result");
+    const nextCell = arrowState.solution[arrowState.currentStep];
+    const nextText = nextCell === undefined
+      ? t("completed")
+      : `${t("tapCell")} #${nextCell + 1}`;
+    const detail = arrowState.solveStatus === "solved"
+      ? `<strong>${t("nextOperation")}:</strong> ${nextText}`
+      : message;
+    setStatus("arrow-status", arrowState, detail);
+    root.replaceChildren();
+    if (message && arrowState.solveStatus !== "solved") {
+      const p = document.createElement("p");
+      p.textContent = message;
+      root.append(p);
+      return;
+    }
+    if (arrowState.solveStatus !== "solved") {
+      const p = document.createElement("p");
+      p.textContent = t("pending");
+      root.append(p);
+      return;
+    }
+    const summary = document.createElement("p");
+    const pressedCells = new Set(arrowState.solution).size;
+    summary.innerHTML = [
+      `<strong>${t("totalTaps")}:</strong> ${arrowState.solution.length}`,
+      `<strong>${t("pressedCells")}:</strong> ${pressedCells}`,
+      `<strong>${t("currentStep")}:</strong> ${arrowState.currentStep}`,
+      `<strong>${arrowState.currentStep === arrowState.solution.length ? t("completed") : t("incomplete")}</strong>`,
+    ].join("<br>");
+    const note = document.createElement("p");
+    note.textContent = t("arrowOrderNote");
+    const operation = document.createElement("p");
+    operation.className = "operation-copy";
+    operation.innerHTML = `<strong>${t("nextOperation")}:</strong> ${nextText}`;
+    root.append(summary, note, operation, createPlaybackControls(arrowState, moveArrowPlayback, restoreArrowInput));
   }
 
   function renderFifteenBoard() {
     const root = byId("fifteen-board");
-    root.replaceChildren();
-    const board = document.createElement("div");
-    board.className = "square-board fifteen-board";
-    board.style.gridTemplateColumns = `repeat(${fifteenSize}, minmax(0, 1fr))`;
-    fifteenBoard.forEach((value, index) => {
-      const input = document.createElement("input");
-      input.className = `tile-input${value === 0 ? " blank" : ""}`;
-      input.type = "number";
-      input.min = "0";
-      input.max = String(fifteenSize * fifteenSize - 1);
-      input.value = String(value);
-      input.addEventListener("change", () => {
-        fifteenBoard[index] = Number(input.value);
-        renderFifteenBoard();
-        setResult("fifteen-result", t("pending"));
-      });
-      board.append(input);
-    });
-    root.append(board);
+    let board = root.querySelector(".fifteen-board");
+    if (!board || Number(board.dataset.size) !== fifteenSize) {
+      board = document.createElement("div");
+      board.className = "square-board fifteen-board";
+      board.dataset.size = String(fifteenSize);
+      board.style.gridTemplateColumns = `repeat(${fifteenSize}, minmax(0, 1fr))`;
+      board.addEventListener("paste", handleFifteenPaste);
+      for (let index = 0; index < fifteenSize * fifteenSize; index += 1) {
+        const input = document.createElement("input");
+        input.className = "tile-input";
+        input.type = "number";
+        input.min = "0";
+        input.max = String(fifteenSize * fifteenSize - 1);
+        input.dataset.index = String(index);
+        input.setAttribute("aria-describedby", "fifteen-input-error");
+        input.addEventListener("focus", () => input.select());
+        input.addEventListener("input", () => updateFifteenInput(index, input.value));
+        input.addEventListener("change", () => updateFifteenInputsView());
+        input.addEventListener("keydown", (event) => focusNextInput(event, ".fifteen-board"));
+        board.append(input);
+      }
+      root.replaceChildren(board);
+    }
+    updateFifteenInputsView();
   }
 
   function solveFifteen() {
-    try {
-      const solution = S.fifteen.solveFifteenPuzzle(fifteenBoard, fifteenSize);
-      fifteenBoard = solution.finalBoard.slice();
-      renderFifteenBoard();
-      renderMoveResult("fifteen-result", t("blankMoves"), solution.moves);
-    } catch (error) {
-      setResult("fifteen-result", formatSolverError(error));
+    const validation = validateFifteenState();
+    if (!validation.valid) {
+      renderFifteenPlayback(validationMessage(validation));
+      updateFifteenInputsView();
+      return;
     }
+    byId("fifteen-solve").disabled = true;
+    fifteenState.solveStatus = "solving";
+    renderFifteenPlayback();
+    try {
+      const solution = S.fifteen.solveFifteenPuzzle(fifteenState.originalBoard, fifteenSize);
+      fifteenState.solution = solution.moves.slice();
+      fifteenState.currentStep = 0;
+      fifteenState.previewBoard = fifteenState.originalBoard.slice();
+      fifteenState.solveStatus = "solved";
+      renderFifteenBoard();
+      renderFifteenPlayback();
+    } catch (error) {
+      fifteenState.solveStatus = "error";
+      renderFifteenPlayback(formatSolverError(error));
+    } finally {
+      byId("fifteen-solve").disabled = false;
+    }
+  }
+
+  function validateFifteenState() {
+    const validation = S.input.validateFifteenInput(fifteenState.originalBoard, fifteenSize);
+    fifteenState.errorCodes = validation.codes;
+    fifteenState.invalidIndices = validation.invalidIndices;
+    if (validation.codes.length) fifteenState.solveStatus = "error";
+    return validation;
+  }
+
+  function updateFifteenInput(index, rawValue) {
+    fifteenState.originalBoard[index] = rawValue.trim() === "" ? 0 : Number(rawValue);
+    fifteenState.previewBoard = fifteenState.originalBoard.slice();
+    clearSolutionState(fifteenState);
+    validateFifteenState();
+    updateFifteenInputsView();
+    renderFifteenPlayback(validationMessage(S.input.validateFifteenInput(fifteenState.originalBoard, fifteenSize)));
+  }
+
+  function updateFifteenInputsView() {
+    const validation = S.input.validateFifteenInput(fifteenState.originalBoard, fifteenSize);
+    fifteenState.errorCodes = validation.codes;
+    fifteenState.invalidIndices = validation.invalidIndices;
+    const invalid = new Set(validation.invalidIndices);
+    const next = fifteenState.solution[fifteenState.currentStep] !== undefined
+      ? S.fifteen.getFifteenStep(fifteenState.previewBoard, fifteenSize, fifteenState.solution[fifteenState.currentStep])
+      : null;
+    const inputs = byId("fifteen-board").querySelectorAll(".tile-input");
+    inputs.forEach((input) => {
+      const index = Number(input.dataset.index);
+      const value = fifteenState.previewBoard[index];
+      if (document.activeElement !== input) {
+        input.value = S.fifteen.formatFifteenDisplayValue(value);
+      }
+      input.classList.toggle("blank", value === 0);
+      input.classList.toggle("is-invalid", invalid.has(index));
+      input.classList.toggle("is-next-action", !!next && next.from === index);
+      input.classList.toggle("is-related-action", !!next && next.to === index);
+      input.classList.toggle("is-preview-blank", value === 0);
+      input.setAttribute("aria-invalid", invalid.has(index) ? "true" : "false");
+    });
+    const error = validationMessage(validation);
+    byId("fifteen-input-error").textContent = error;
+    if (fifteenState.solveStatus !== "solved") {
+      fifteenState.solveStatus = error ? "error" : "idle";
+    }
+    renderFifteenStatus(error);
+  }
+
+  function renderFifteenStatus(message = "") {
+    const detail = fifteenState.solveStatus === "solved"
+      ? `<strong>${t("nextOperation")}:</strong> ${describeFifteenCurrentStep()}`
+      : message;
+    setStatus("fifteen-status", fifteenState, detail);
+  }
+
+  function handleFifteenPaste(event) {
+    const textValue = event.clipboardData && event.clipboardData.getData("text");
+    if (!textValue) return;
+    const values = S.input.parseBoardValues(textValue);
+    const countCheck = S.input.validatePastedValues(values, fifteenSize * fifteenSize);
+    if (!countCheck.valid) {
+      event.preventDefault();
+      byId("fifteen-input-error").textContent = t(countCheck.code);
+      fifteenState.solveStatus = "error";
+      renderFifteenStatus(t(countCheck.code));
+      return;
+    }
+    event.preventDefault();
+    fifteenState.originalBoard = values;
+    fifteenState.previewBoard = values.slice();
+    clearSolutionState(fifteenState);
+    validateFifteenState();
+    renderFifteenBoard();
+    renderFifteenPlayback(validationMessage(S.input.validateFifteenInput(fifteenState.originalBoard, fifteenSize)));
+  }
+
+  function focusNextInput(event, boardSelector) {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const board = event.currentTarget.closest(boardSelector);
+    const inputs = Array.from(board.querySelectorAll(".tile-input"));
+    const index = inputs.indexOf(event.currentTarget);
+    const next = inputs[(index + 1) % inputs.length];
+    next.focus();
+    next.select();
+  }
+
+  function directionText(move) {
+    return { U: t("up"), D: t("down"), L: t("left"), R: t("right") }[move];
+  }
+
+  function describeFifteenCurrentStep() {
+    if (!fifteenState.solution.length) return t("pending");
+    if (fifteenState.currentStep >= fifteenState.solution.length) return t("completed");
+    const move = fifteenState.solution[fifteenState.currentStep];
+    const step = S.fifteen.getFifteenStep(fifteenState.previewBoard, fifteenSize, move);
+    return `${tt("moveTileIntoBlank", { tile: step.tile })} (${tt("blankMove", { direction: directionText(move) })})`;
+  }
+
+  function moveFifteenPlayback(step) {
+    movePlayback(fifteenState, step, (board, move) => S.fifteen.applyFifteenStep(board, fifteenSize, move));
+    renderFifteenBoard();
+    renderFifteenPlayback();
+  }
+
+  function restoreFifteenInput() {
+    moveFifteenPlayback(0);
+  }
+
+  function renderFifteenPlayback(message = "") {
+    const root = byId("fifteen-result");
+    renderFifteenStatus(message);
+    root.replaceChildren();
+    if (message && fifteenState.solveStatus !== "solved") {
+      const p = document.createElement("p");
+      p.textContent = message;
+      root.append(p);
+      return;
+    }
+    if (fifteenState.solveStatus !== "solved") {
+      const p = document.createElement("p");
+      p.textContent = t("pending");
+      root.append(p);
+      return;
+    }
+    const summary = document.createElement("p");
+    summary.innerHTML = `<strong>${t("blankMoves")}:</strong> ${fifteenState.solution.length} ${t("solvedIn")}`;
+    const operation = document.createElement("p");
+    operation.className = "operation-copy";
+    operation.innerHTML = `<strong>${t("nextOperation")}:</strong> ${describeFifteenCurrentStep()}`;
+    root.append(summary, operation, createPlaybackControls(fifteenState, moveFifteenPlayback, restoreFifteenInput));
   }
 
   function renderMoveResult(id, title, moves) {
@@ -1209,38 +1765,55 @@
 
   function renderTorusBoard() {
     const root = byId("torus-board");
-    root.replaceChildren();
-    const board = document.createElement("div");
-    board.className = "square-board torus-board";
-    board.style.gridTemplateColumns = `repeat(${torusSize}, minmax(0, 1fr))`;
-    torusBoard.flat().forEach((value, index) => {
-      const input = document.createElement("input");
-      input.className = "tile-input";
-      input.type = "number";
-      input.min = "1";
-      input.max = String(torusSize * torusSize);
-      input.value = String(value);
-      input.addEventListener("change", () => {
-        const row = Math.floor(index / torusSize);
-        const col = index % torusSize;
-        torusBoard[row][col] = Number(input.value);
-        renderTorusBoard();
-        setResult("torus-result", t("pending"));
-      });
-      board.append(input);
-    });
-    root.append(board);
+    let board = root.querySelector(".torus-board");
+    if (!board || Number(board.dataset.size) !== torusSize) {
+      board = document.createElement("div");
+      board.className = "square-board torus-board";
+      board.dataset.size = String(torusSize);
+      board.style.gridTemplateColumns = `repeat(${torusSize}, minmax(0, 1fr))`;
+      board.addEventListener("paste", handleTorusPaste);
+      for (let index = 0; index < torusSize * torusSize; index += 1) {
+        const input = document.createElement("input");
+        input.className = "tile-input";
+        input.type = "number";
+        input.min = "1";
+        input.max = String(torusSize * torusSize);
+        input.dataset.index = String(index);
+        input.setAttribute("aria-describedby", "torus-input-error");
+        input.addEventListener("focus", () => input.select());
+        input.addEventListener("input", () => updateTorusInput(index, input.value));
+        input.addEventListener("change", () => updateTorusInputsView());
+        input.addEventListener("keydown", (event) => focusNextInput(event, ".torus-board"));
+        board.append(input);
+      }
+      root.replaceChildren(board);
+    }
+    updateTorusInputsView();
   }
 
   function solveTorus() {
+    const validation = validateTorusState();
+    if (!validation.valid) {
+      renderTorusPlayback(validationMessage(validation));
+      updateTorusInputsView();
+      return;
+    }
+    byId("torus-solve").disabled = true;
+    torusState.solveStatus = "solving";
+    renderTorusPlayback();
     try {
-      const solution = S.torus.solveTorusPuzzle(torusBoard);
-      torusBoard = solution.finalMatrix.map((row) => row.slice());
+      const solution = S.torus.solveTorusPuzzle(torusState.originalBoard);
+      torusState.solution = S.torus.mergeTorusOperations(solution.operations, torusSize);
+      torusState.currentStep = 0;
+      torusState.previewBoard = copyBoard(torusState.originalBoard);
+      torusState.solveStatus = "solved";
       renderTorusBoard();
-      const moves = solution.operations.map(formatTorusOp);
-      renderMoveResult("torus-result", t("torusOps"), moves);
+      renderTorusPlayback();
     } catch (error) {
-      setResult("torus-result", formatSolverError(error));
+      torusState.solveStatus = "error";
+      renderTorusPlayback(formatSolverError(error));
+    } finally {
+      byId("torus-solve").disabled = false;
     }
   }
 
@@ -1250,11 +1823,139 @@
     return `${axis} ${op.index + 1} ${dir} x${op.amount}`;
   }
 
+  function describeTorusOperation(op) {
+    const info = S.torus.getTorusOperationInfo(op);
+    const direction = directionText(op.type);
+    if (info.axis === "row") {
+      return tt("shiftRow", { index: info.index, direction, amount: info.amount });
+    }
+    return tt("shiftColumn", { index: info.index, direction, amount: info.amount });
+  }
+
+  function validateTorusState() {
+    const validation = S.input.validateTorusInput(torusState.originalBoard.flat(), torusSize);
+    torusState.errorCodes = validation.codes;
+    torusState.invalidIndices = validation.invalidIndices;
+    if (validation.codes.length) torusState.solveStatus = "error";
+    return validation;
+  }
+
+  function updateTorusInput(index, rawValue) {
+    const value = Number(rawValue);
+    const row = Math.floor(index / torusSize);
+    const col = index % torusSize;
+    torusState.originalBoard[row][col] = value;
+    torusState.previewBoard = copyBoard(torusState.originalBoard);
+    clearSolutionState(torusState);
+    validateTorusState();
+    updateTorusInputsView();
+    renderTorusPlayback(validationMessage(S.input.validateTorusInput(torusState.originalBoard.flat(), torusSize)));
+  }
+
+  function updateTorusInputsView() {
+    const validation = S.input.validateTorusInput(torusState.originalBoard.flat(), torusSize);
+    torusState.errorCodes = validation.codes;
+    torusState.invalidIndices = validation.invalidIndices;
+    const invalid = new Set(validation.invalidIndices);
+    const next = torusState.solution[torusState.currentStep];
+    const inputs = byId("torus-board").querySelectorAll(".tile-input");
+    inputs.forEach((input) => {
+      const index = Number(input.dataset.index);
+      const row = Math.floor(index / torusSize);
+      const col = index % torusSize;
+      const value = torusState.previewBoard[row][col];
+      if (document.activeElement !== input) {
+        input.value = String(value);
+      }
+      const isTarget = !!next && ((next.type === "L" || next.type === "R") ? row === next.index : col === next.index);
+      input.classList.toggle("is-invalid", invalid.has(index));
+      input.classList.toggle("is-next-action", isTarget);
+      input.setAttribute("aria-invalid", invalid.has(index) ? "true" : "false");
+    });
+    const error = validationMessage(validation);
+    byId("torus-input-error").textContent = error;
+    if (torusState.solveStatus !== "solved") {
+      torusState.solveStatus = error ? "error" : "idle";
+    }
+    renderTorusStatus(error);
+  }
+
+  function renderTorusStatus(message = "") {
+    const detail = torusState.solveStatus === "solved"
+      ? `<strong>${t("nextOperation")}:</strong> ${describeTorusCurrentStep()}`
+      : message;
+    setStatus("torus-status", torusState, detail);
+  }
+
+  function handleTorusPaste(event) {
+    const textValue = event.clipboardData && event.clipboardData.getData("text");
+    if (!textValue) return;
+    const values = S.input.parseBoardValues(textValue);
+    const countCheck = S.input.validatePastedValues(values, torusSize * torusSize);
+    if (!countCheck.valid) {
+      event.preventDefault();
+      byId("torus-input-error").textContent = t(countCheck.code);
+      torusState.solveStatus = "error";
+      renderTorusStatus(t(countCheck.code));
+      return;
+    }
+    event.preventDefault();
+    torusState.originalBoard = Array.from({ length: torusSize }, (_, row) => values.slice(row * torusSize, (row + 1) * torusSize));
+    torusState.previewBoard = copyBoard(torusState.originalBoard);
+    clearSolutionState(torusState);
+    validateTorusState();
+    renderTorusBoard();
+    renderTorusPlayback(validationMessage(S.input.validateTorusInput(torusState.originalBoard.flat(), torusSize)));
+  }
+
+  function describeTorusCurrentStep() {
+    if (!torusState.solution.length) return t("pending");
+    if (torusState.currentStep >= torusState.solution.length) return t("completed");
+    return describeTorusOperation(torusState.solution[torusState.currentStep]);
+  }
+
+  function moveTorusPlayback(step) {
+    movePlayback(torusState, step, (board, op) => S.torus.applyTorusOperation(board, op));
+    renderTorusBoard();
+    renderTorusPlayback();
+  }
+
+  function restoreTorusInput() {
+    moveTorusPlayback(0);
+  }
+
+  function renderTorusPlayback(message = "") {
+    const root = byId("torus-result");
+    renderTorusStatus(message);
+    root.replaceChildren();
+    if (message && torusState.solveStatus !== "solved") {
+      const p = document.createElement("p");
+      p.textContent = message;
+      root.append(p);
+      return;
+    }
+    if (torusState.solveStatus !== "solved") {
+      const p = document.createElement("p");
+      p.textContent = t("pending");
+      root.append(p);
+      return;
+    }
+    const summary = document.createElement("p");
+    summary.innerHTML = `<strong>${t("torusOps")}:</strong> ${torusState.solution.length} ${t("solvedIn")}`;
+    const operation = document.createElement("p");
+    operation.className = "operation-copy";
+    operation.innerHTML = `<strong>${t("nextOperation")}:</strong> ${describeTorusCurrentStep()}`;
+    root.append(summary, operation, createPlaybackControls(torusState, moveTorusPlayback, restoreTorusInput));
+  }
+
   function renderAllBoards() {
     syncArrowInputs();
     renderArrowBoard();
+    renderArrowPlayback();
     renderFifteenBoard();
+    renderFifteenPlayback();
     renderTorusBoard();
+    renderTorusPlayback();
   }
 
   function init() {
@@ -1262,53 +1963,52 @@
     fillDifficulty(byId("fifteen-difficulty"), "fifteen");
     fillDifficulty(byId("torus-difficulty"), "torus");
     byId("arrow-difficulty").addEventListener("change", (event) => {
-      arrowState = { difficulty: event.target.value, values: S.arrow.createArrowGoal(event.target.value) };
+      arrowState = { difficulty: event.target.value, ...createPlaybackState(S.arrow.createArrowGoal(event.target.value)) };
       ensureArrowValues(true);
       renderAllBoards();
-      setResult("arrow-result", t("pending"));
     });
     byId("fifteen-difficulty").addEventListener("change", (event) => {
       fifteenDifficulty = event.target.value;
       fifteenSize = GAME_SPECS.fifteen[fifteenDifficulty].size;
-      fifteenBoard = goalFifteen(fifteenSize);
+      fifteenState = createPlaybackState(goalFifteen(fifteenSize));
       renderFifteenBoard();
-      setResult("fifteen-result", t("pending"));
+      renderFifteenPlayback();
     });
     byId("torus-difficulty").addEventListener("change", (event) => {
       torusDifficulty = event.target.value;
       torusSize = GAME_SPECS.torus[torusDifficulty].size;
-      torusBoard = goalTorus(torusSize);
+      torusState = createPlaybackState(goalTorus(torusSize));
       renderTorusBoard();
-      setResult("torus-result", t("pending"));
+      renderTorusPlayback();
     });
     byId("arrow-solve").addEventListener("click", solveArrow);
     byId("arrow-random").addEventListener("click", shuffleArrow);
     byId("arrow-reset").addEventListener("click", () => {
       ensureArrowValues(true);
       renderArrowBoard();
-      setResult("arrow-result", t("pending"));
+      renderArrowPlayback();
     });
     byId("fifteen-solve").addEventListener("click", solveFifteen);
     byId("fifteen-random").addEventListener("click", () => {
-      fifteenBoard = S.fifteen.scrambleFifteen(fifteenSize, 80 + fifteenSize * 24);
+      fifteenState = createPlaybackState(S.fifteen.scrambleFifteen(fifteenSize, 80 + fifteenSize * 24));
       renderFifteenBoard();
-      setResult("fifteen-result", t("pending"));
+      renderFifteenPlayback();
     });
     byId("fifteen-reset").addEventListener("click", () => {
-      fifteenBoard = goalFifteen(fifteenSize);
+      fifteenState = createPlaybackState(goalFifteen(fifteenSize));
       renderFifteenBoard();
-      setResult("fifteen-result", t("pending"));
+      renderFifteenPlayback();
     });
     byId("torus-solve").addEventListener("click", solveTorus);
     byId("torus-random").addEventListener("click", () => {
-      torusBoard = S.torus.scrambleTorus(torusSize, 20 + torusSize * 4);
+      torusState = createPlaybackState(S.torus.scrambleTorus(torusSize, 20 + torusSize * 4));
       renderTorusBoard();
-      setResult("torus-result", t("pending"));
+      renderTorusPlayback();
     });
     byId("torus-reset").addEventListener("click", () => {
-      torusBoard = goalTorus(torusSize);
+      torusState = createPlaybackState(goalTorus(torusSize));
       renderTorusBoard();
-      setResult("torus-result", t("pending"));
+      renderTorusPlayback();
     });
     for (const button of document.querySelectorAll("[data-game]")) {
       button.addEventListener("click", () => {

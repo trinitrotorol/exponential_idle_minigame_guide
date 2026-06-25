@@ -308,6 +308,21 @@ select {
   min-width: 0;
 }
 
+.board-status {
+  min-height: 3.2em;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border: 1px solid #333333;
+  background: #0d0d0d;
+  color: var(--muted);
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.95rem;
+}
+
+.board-status strong {
+  color: var(--text);
+}
+
 .board-stage {
   display: grid;
   justify-content: center;
@@ -368,6 +383,20 @@ select {
   color: transparent;
 }
 
+.tile-input.is-invalid {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 2px rgba(191, 43, 43, 0.35);
+}
+
+.input-error {
+  min-height: 1.4em;
+  margin: 10px 0 0;
+  color: #ff8b8b;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
 .arrow-tile,
 .solution-tile {
   border-radius: 50%;
@@ -379,6 +408,10 @@ select {
 
 .arrow-tile {
   cursor: pointer;
+}
+
+.hex-row .arrow-tile {
+  width: clamp(36px, 5vw, 50px);
 }
 
 .arrow-icon {
@@ -434,6 +467,57 @@ select {
 
 .arrow-tile:hover {
   border-color: var(--accent);
+}
+
+.is-next-action {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(243, 184, 65, 0.45);
+}
+
+.is-related-action {
+  border-color: #a98931;
+}
+
+.is-preview-blank {
+  border-style: dashed;
+}
+
+.tap-badge {
+  position: absolute;
+  right: -7px;
+  top: -7px;
+  min-width: 1.8em;
+  border: 1px solid #f8d071;
+  border-radius: 999px;
+  background: #111111;
+  color: #f8d071;
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.arrow-tile,
+.tile-input {
+  position: relative;
+}
+
+.playback-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.playback-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.playback-buttons .game-button {
+  flex: 1 1 76px;
+}
+
+.operation-copy {
+  margin: 0;
+  color: var(--text);
 }
 
 .torus-board .tile-input {
@@ -508,6 +592,12 @@ select {
   .arrow-tile,
   .solution-tile {
     width: clamp(34px, 15vw, 56px);
+  }
+
+  .hex-row .arrow-tile {
+    width: clamp(30px, 12vw, 42px);
+    margin-right: 2px;
+    margin-left: 2px;
   }
 
   .stats-strip {
