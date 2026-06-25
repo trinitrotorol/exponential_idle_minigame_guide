@@ -67,6 +67,7 @@
             </div>
           </aside>
           <div class="board-wrap">
+            <div id="arrow-status" class="board-status" aria-live="polite"></div>
             <div id="arrow-board" class="board-stage"></div>
           </div>
           <aside class="result-panel">
@@ -93,9 +94,11 @@
               <button class="game-button" type="button" id="fifteen-random" data-i18n="shuffleButton">シャッフル</button>
               <button class="game-button danger" type="button" id="fifteen-reset" data-i18n="resetButton">リセット</button>
             </div>
+            <p id="fifteen-input-error" class="input-error" role="alert"></p>
             <p class="control-note" data-i18n="fifteenNote">Hardは5x5です。最適解ではなく、層を固定して解く実用手順を出します。</p>
           </aside>
           <div class="board-wrap">
+            <div id="fifteen-status" class="board-status" aria-live="polite"></div>
             <div id="fifteen-board" class="board-stage"></div>
           </div>
           <aside class="result-panel">
@@ -122,9 +125,11 @@
               <button class="game-button" type="button" id="torus-random" data-i18n="shuffleButton">シャッフル</button>
               <button class="game-button danger" type="button" id="torus-reset" data-i18n="resetButton">リセット</button>
             </div>
+            <p id="torus-input-error" class="input-error" role="alert"></p>
             <p class="control-note" data-i18n="torusNote">Easyは3x3、Mediumは5x5、Hardは6x6です。</p>
           </aside>
           <div class="board-wrap">
+            <div id="torus-status" class="board-status" aria-live="polite"></div>
             <div id="torus-board" class="board-stage"></div>
           </div>
           <aside class="result-panel">
