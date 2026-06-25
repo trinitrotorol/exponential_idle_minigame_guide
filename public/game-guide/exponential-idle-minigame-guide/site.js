@@ -950,6 +950,19 @@
     return matrix;
   }
 
+  function oneBasedPosition(index, columns) {
+    return {
+      row: Math.floor(index / columns) + 1,
+      col: (index % columns) + 1,
+    };
+  }
+
+  function fitCellSize(availableWidth, cells, gap, minSize, maxSize) {
+    const usable = availableWidth - Math.max(0, cells - 1) * gap;
+    const size = usable / cells;
+    return Math.max(minSize, Math.min(maxSize, size));
+  }
+
   const solvers = {
     GAME_SPECS,
     getGameSpec,
@@ -992,6 +1005,7 @@
       mergeTorusOperations,
     },
     input: { parseBoardValues, analyzePermutation, validateFifteenInput, validateTorusInput, validatePastedValues },
+    ui: { oneBasedPosition, fitCellSize },
     util: { modValue, cloneMatrix, createSeededRandom },
   };
 
@@ -1010,14 +1024,30 @@
 
   const text = {
     ja: {
-      appTitle: "ミニゲーム攻略",
-      appLead: "ゲーム画面に近い見た目で、盤面を入力して解法を確認できます。",
+      documentTitle: "Exponential Idle ミニゲーム盤面ソルバー | trinitrotorol",
+      appTitle: "Exponential Idle ミニゲーム盤面ソルバー",
+      appLead: "現在の盤面を入力して、次にどのマスを操作するかを確認できます。",
+      languageToggleLabel: "言語切替",
+      tabListLabel: "パズル切替",
       arrowTitle: "矢印パズル",
-      arrowHelp: "ゲームの現在盤面と同じ向きになるまで、各マスをタップしてください。入力中は周囲のマスは回転しません。",
+      arrowHelp: "入力では、各マスをゲーム内の現在向きに合わせます。解答後は、ゲーム内で押すマスを順番に確認します。",
       fifteenTitle: "15パズル",
-      fifteenHelp: "四角をスライドして数字を順番通りに並べます。空白は0で入力します。",
+      fifteenHelp: "数字を空白へ移動しながら順番通りに並べます。入力では0または空欄を空白として扱います。",
       torusTitle: "トーラスパズル",
-      torusHelp: "行または列を巡回シフトして、左上から昇順に並べます。",
+      torusHelp: "行または列を巡回シフトして、左上から昇順に並べます。操作表示の行・列番号は1始まりです。",
+      recommendedSettings: "使う前のおすすめ設定",
+      arrowSettingVisual: "Visual Scheme: Greyscale + Numbers",
+      arrowSettingAnimation: "Animation: 無効",
+      arrowSettingInput: "盤面入力中は、各マスを現在の向きに合わせるだけです",
+      arrowSettingNoRotate: "ゲーム内のように周囲のマスは回転しません",
+      fifteenSettingVisual: "Visual Scheme: Fringe",
+      fifteenSettingHover: "Hover/Slide Control: 有効",
+      fifteenSettingAnimation: "Animation: 無効",
+      fifteenSettingBlank: "空白はこのサイトでは空欄として表示します",
+      torusSettingVisual: "Visual Scheme: Insertion",
+      torusSettingHover: "Hover/Slide Control: 有効",
+      torusSettingAnimation: "Animation: 無効",
+      torusSettingIndex: "行・列番号はこのサイトでは1始まりで表示します",
       timeLabel: "時間",
       bestLabel: "最高記録",
       difficultyLabel: "難易度",
@@ -1030,8 +1060,12 @@
       resetButton: "リセット",
       solutionTitle: "解法",
       sourceNote: "参考: Exponential Idle GuidesのMinigamesページと公開ソルバー実装。",
+      arrowNote: "入力中のタップは入力だけを変更します。解答ステップの強調マスはゲーム内で押すマスです。",
       fifteenNote: "Hardは5x5です。最適解ではなく、層を固定して解く実用手順を出します。",
       torusNote: "Easyは3x3、Mediumは5x5、Hardは6x6です。",
+      arrowBoardLabel: "Arrow盤面入力",
+      fifteenBoardLabel: "15パズル盤面入力",
+      torusBoardLabel: "Torus盤面入力",
       pending: "未計算",
       noSolution: "解が見つかりませんでした。",
       solvedIn: "手数",
@@ -1053,7 +1087,8 @@
       totalTaps: "総タップ数",
       pressedCells: "押すマス数",
       currentStep: "現在ステップ",
-      tapCell: "強調されたマスをタップ",
+      tapCell: "ゲーム内で押すマス",
+      nextBadge: "次",
       remainingTaps: "残り",
       directionState: "向き",
       taps: "タップ回数",
@@ -1068,8 +1103,14 @@
       blank: "空白",
       moveTileIntoBlank: "{tile}を空白へ移動",
       blankMove: "空白: {direction}",
-      shiftRow: "{index}行目を{direction}{amount}",
-      shiftColumn: "{index}列目を{direction}{amount}",
+      shiftRow: "{index}行目を{direction}へ{amount}",
+      shiftColumn: "{index}列目を{direction}へ{amount}",
+      cellPosition: "{row}行{col}列",
+      arrowInputCellLabel: "{position}、現在の向き {value}。入力操作: このマスだけを次の向きへ変更します。",
+      arrowNextCellLabel: "{position}、現在の向き {value}。次にゲーム内で押すマスです。",
+      fifteenInputLabel: "{position}、値 {value}。0から{max}までを入力できます。",
+      fifteenBlankInputLabel: "{position}、空白。0から{max}までを入力できます。",
+      torusInputLabel: "{position}、値 {value}。1から{max}までを入力できます。",
       duplicateNumbers: "数字が重複しています",
       missingNumbers: "数字が不足しています",
       outOfRangeNumbers: "範囲外の数字があります",
@@ -1091,14 +1132,30 @@
       unknownError: "解法の計算中にエラーが発生しました。",
     },
     en: {
-      appTitle: "Minigame Guide",
-      appLead: "Enter a board and inspect the solving steps in a game-like screen.",
+      documentTitle: "Exponential Idle Minigame Board Solver | trinitrotorol",
+      appTitle: "Exponential Idle Minigame Board Solver",
+      appLead: "Enter the current board and see which cell or line to operate next.",
+      languageToggleLabel: "Language",
+      tabListLabel: "Puzzle selector",
       arrowTitle: "Arrow Puzzle",
-      arrowHelp: "Tap each cell until it matches the current in-game board. Adjacent cells do not rotate while entering the board.",
+      arrowHelp: "For input, set each cell to the current in-game direction. After solving, follow the cells to press in the game.",
       fifteenTitle: "15-Puzzle",
-      fifteenHelp: "Slide numbered tiles into order. Enter 0 for the blank.",
+      fifteenHelp: "Move numbered tiles into the blank until the board is ordered. Use 0 or an empty cell for the blank.",
       torusTitle: "Torus Puzzle",
-      torusHelp: "Rotate rows or columns cyclically until numbers are sorted.",
+      torusHelp: "Cyclically shift rows or columns until the board is sorted. Row and column numbers shown here are 1-based.",
+      recommendedSettings: "Recommended settings before use",
+      arrowSettingVisual: "Visual Scheme: Greyscale + Numbers",
+      arrowSettingAnimation: "Animation: Off",
+      arrowSettingInput: "During board input, each tap only changes that cell to the current direction",
+      arrowSettingNoRotate: "Adjacent cells do not rotate like they do in the game",
+      fifteenSettingVisual: "Visual Scheme: Fringe",
+      fifteenSettingHover: "Hover/Slide Control: On",
+      fifteenSettingAnimation: "Animation: Off",
+      fifteenSettingBlank: "The blank is displayed as an empty cell on this site",
+      torusSettingVisual: "Visual Scheme: Insertion",
+      torusSettingHover: "Hover/Slide Control: On",
+      torusSettingAnimation: "Animation: Off",
+      torusSettingIndex: "Rows and columns are displayed as 1-based on this site",
       timeLabel: "Time",
       bestLabel: "Best Time",
       difficultyLabel: "Difficulty",
@@ -1111,8 +1168,12 @@
       resetButton: "Reset",
       solutionTitle: "Solution",
       sourceNote: "References: Exponential Idle Guides Minigames page and public solver implementations.",
+      arrowNote: "Input taps only edit the entered board. Highlighted solution steps are cells to press in the game.",
       fifteenNote: "Hard is 5x5. The solver returns a practical layer-by-layer route, not an optimal route.",
       torusNote: "Easy is 3x3, Medium is 5x5, and Hard is 6x6.",
+      arrowBoardLabel: "Arrow board input",
+      fifteenBoardLabel: "15-Puzzle board input",
+      torusBoardLabel: "Torus board input",
       pending: "Not calculated",
       noSolution: "No solution was found.",
       solvedIn: "moves",
@@ -1134,7 +1195,8 @@
       totalTaps: "Total taps",
       pressedCells: "Pressed cells",
       currentStep: "Current step",
-      tapCell: "Tap the highlighted cell",
+      tapCell: "Cell to press in the game",
+      nextBadge: "Next",
       remainingTaps: "remaining",
       directionState: "direction",
       taps: "tap counts",
@@ -1151,6 +1213,12 @@
       blankMove: "Blank: {direction}",
       shiftRow: "Shift row {index} {direction} by {amount}",
       shiftColumn: "Shift column {index} {direction} by {amount}",
+      cellPosition: "row {row}, column {col}",
+      arrowInputCellLabel: "{position}, current direction {value}. Input action: change only this cell to the next direction.",
+      arrowNextCellLabel: "{position}, current direction {value}. This is the next cell to press in the game.",
+      fifteenInputLabel: "{position}, value {value}. Enter a value from 0 to {max}.",
+      fifteenBlankInputLabel: "{position}, blank. Enter a value from 0 to {max}.",
+      torusInputLabel: "{position}, value {value}. Enter a value from 1 to {max}.",
       duplicateNumbers: "Numbers are duplicated",
       missingNumbers: "Numbers are missing",
       outOfRangeNumbers: "Numbers are out of range",
@@ -1231,12 +1299,38 @@
 
   function setStatus(id, state, detail = "") {
     const status = byId(id);
+    status.className = `board-status is-${state.solveStatus}`;
     status.innerHTML = `<strong>${t("statusLabel")}:</strong> ${statusText(state.solveStatus)}${detail ? `<br>${detail}` : ""}`;
   }
 
   function validationMessage(validation) {
     if (!validation || validation.codes.length === 0) return "";
     return validation.codes.map((code) => t(code)).join(" / ");
+  }
+
+  function cellPositionLabel(index, columns) {
+    return tt("cellPosition", S.ui.oneBasedPosition(index, columns));
+  }
+
+  function arrowCellPositionLabel(index) {
+    const spec = currentArrowSpec();
+    if (spec.shape === "square") {
+      return cellPositionLabel(index, spec.width);
+    }
+    let offset = 0;
+    const rows = arrowRowLengths();
+    for (let row = 0; row < rows.length; row += 1) {
+      if (index < offset + rows[row]) {
+        return tt("cellPosition", { row: row + 1, col: index - offset + 1 });
+      }
+      offset += rows[row];
+    }
+    return tt("cellPosition", { row: 1, col: index + 1 });
+  }
+
+  function setBoardCells(board, cells) {
+    board.style.setProperty("--board-cells", String(cells));
+    board.style.setProperty("--board-max-width", `${cells * 64 + Math.max(0, cells - 1) * 5}px`);
   }
 
   function clearSolutionState(state) {
@@ -1292,8 +1386,12 @@
 
   function applyLanguage() {
     document.documentElement.lang = lang;
+    document.title = t("documentTitle");
     for (const node of document.querySelectorAll("[data-i18n]")) {
       node.textContent = t(node.dataset.i18n);
+    }
+    for (const node of document.querySelectorAll("[data-i18n-aria-label]")) {
+      node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
     }
     for (const button of document.querySelectorAll("[data-lang]")) {
       button.classList.toggle("is-active", button.dataset.lang === lang);
@@ -1306,10 +1404,41 @@
 
   function renderTabs() {
     for (const button of document.querySelectorAll("[data-game]")) {
-      button.classList.toggle("is-active", button.dataset.game === activeGame);
+      const selected = button.dataset.game === activeGame;
+      button.classList.toggle("is-active", selected);
+      button.setAttribute("aria-selected", selected ? "true" : "false");
+      button.tabIndex = selected ? 0 : -1;
     }
     for (const panel of document.querySelectorAll("[data-panel]")) {
-      panel.classList.toggle("is-active", panel.dataset.panel === activeGame);
+      const selected = panel.dataset.panel === activeGame;
+      panel.classList.toggle("is-active", selected);
+      panel.hidden = !selected;
+      panel.setAttribute("aria-hidden", selected ? "false" : "true");
+    }
+  }
+
+  function selectGame(game, focusTab = false) {
+    activeGame = game;
+    renderTabs();
+    if (focusTab) byId(`${game}-tab`).focus();
+  }
+
+  function handleTabKeydown(event) {
+    const tabs = Array.from(document.querySelectorAll("[role='tab'][data-game]"));
+    const currentIndex = tabs.indexOf(event.currentTarget);
+    let nextIndex = currentIndex;
+    if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % tabs.length;
+    if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+    if (event.key === "Home") nextIndex = 0;
+    if (event.key === "End") nextIndex = tabs.length - 1;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      selectGame(event.currentTarget.dataset.game, true);
+      return;
+    }
+    if (nextIndex !== currentIndex) {
+      event.preventDefault();
+      selectGame(tabs[nextIndex].dataset.game, true);
     }
   }
 
@@ -1352,6 +1481,7 @@
     if (spec.shape === "square") {
       const board = document.createElement("div");
       board.className = "square-board";
+      setBoardCells(board, spec.width);
       board.style.gridTemplateColumns = `repeat(${spec.width}, minmax(0, 1fr))`;
       arrowState.previewBoard.forEach((value, index) => board.append(arrowButton(value, index)));
       root.append(board);
@@ -1381,22 +1511,28 @@
     button.type = "button";
     button.className = `arrow-tile${value ? " is-lit" : ""}`;
     const nextTap = arrowState.solution[arrowState.currentStep];
-    if (nextTap === index) {
+    const isNextTap = nextTap === index;
+    if (isNextTap) {
       button.classList.add("is-next-action");
     }
-    button.setAttribute("aria-label", `${t("directionState")} ${value}`);
+    const position = arrowCellPositionLabel(index);
+    button.setAttribute("aria-label", tt(isNextTap ? "arrowNextCellLabel" : "arrowInputCellLabel", { position, value }));
+    button.setAttribute("aria-describedby", "arrow-status");
     const icon = document.createElement("span");
     icon.className = "arrow-icon";
     icon.style.setProperty("--arrow-angle", `${arrowAngle(value)}deg`);
+    const valueText = document.createElement("span");
+    valueText.className = "arrow-value";
+    valueText.textContent = String(value);
     const label = document.createElement("span");
     label.className = "sr-only";
-    label.textContent = `${t("directionState")} ${value}`;
-    button.replaceChildren(icon, label);
+    label.textContent = button.getAttribute("aria-label");
+    button.replaceChildren(icon, valueText, label);
     const remaining = arrowState.solution.slice(arrowState.currentStep).filter((cell) => cell === index).length;
-    if (remaining > 1) {
+    if (isNextTap || remaining > 1) {
       const badge = document.createElement("span");
       badge.className = "tap-badge";
-      badge.textContent = `x${remaining}`;
+      badge.textContent = remaining > 1 ? `${t("nextBadge")} x${remaining}` : t("nextBadge");
       button.append(badge);
     }
     button.addEventListener("click", () => {
@@ -1564,16 +1700,18 @@
       board = document.createElement("div");
       board.className = "square-board fifteen-board";
       board.dataset.size = String(fifteenSize);
+      setBoardCells(board, fifteenSize);
       board.style.gridTemplateColumns = `repeat(${fifteenSize}, minmax(0, 1fr))`;
       board.addEventListener("paste", handleFifteenPaste);
       for (let index = 0; index < fifteenSize * fifteenSize; index += 1) {
         const input = document.createElement("input");
         input.className = "tile-input";
         input.type = "number";
+        input.inputMode = "numeric";
         input.min = "0";
         input.max = String(fifteenSize * fifteenSize - 1);
         input.dataset.index = String(index);
-        input.setAttribute("aria-describedby", "fifteen-input-error");
+        input.setAttribute("aria-describedby", "fifteen-input-error fifteen-status");
         input.addEventListener("focus", () => input.select());
         input.addEventListener("input", () => updateFifteenInput(index, input.value));
         input.addEventListener("change", () => updateFifteenInputsView());
@@ -1649,6 +1787,11 @@
       input.classList.toggle("is-related-action", !!next && next.to === index);
       input.classList.toggle("is-preview-blank", value === 0);
       input.setAttribute("aria-invalid", invalid.has(index) ? "true" : "false");
+      input.setAttribute("aria-label", tt(value === 0 ? "fifteenBlankInputLabel" : "fifteenInputLabel", {
+        position: cellPositionLabel(index, fifteenSize),
+        value,
+        max: fifteenSize * fifteenSize - 1,
+      }));
     });
     const error = validationMessage(validation);
     byId("fifteen-input-error").textContent = error;
@@ -1770,16 +1913,18 @@
       board = document.createElement("div");
       board.className = "square-board torus-board";
       board.dataset.size = String(torusSize);
+      setBoardCells(board, torusSize);
       board.style.gridTemplateColumns = `repeat(${torusSize}, minmax(0, 1fr))`;
       board.addEventListener("paste", handleTorusPaste);
       for (let index = 0; index < torusSize * torusSize; index += 1) {
         const input = document.createElement("input");
         input.className = "tile-input";
         input.type = "number";
+        input.inputMode = "numeric";
         input.min = "1";
         input.max = String(torusSize * torusSize);
         input.dataset.index = String(index);
-        input.setAttribute("aria-describedby", "torus-input-error");
+        input.setAttribute("aria-describedby", "torus-input-error torus-status");
         input.addEventListener("focus", () => input.select());
         input.addEventListener("input", () => updateTorusInput(index, input.value));
         input.addEventListener("change", () => updateTorusInputsView());
@@ -1871,6 +2016,11 @@
       input.classList.toggle("is-invalid", invalid.has(index));
       input.classList.toggle("is-next-action", isTarget);
       input.setAttribute("aria-invalid", invalid.has(index) ? "true" : "false");
+      input.setAttribute("aria-label", tt("torusInputLabel", {
+        position: cellPositionLabel(index, torusSize),
+        value,
+        max: torusSize * torusSize,
+      }));
     });
     const error = validationMessage(validation);
     byId("torus-input-error").textContent = error;
@@ -2012,9 +2162,9 @@
     });
     for (const button of document.querySelectorAll("[data-game]")) {
       button.addEventListener("click", () => {
-        activeGame = button.dataset.game;
-        renderTabs();
+        selectGame(button.dataset.game);
       });
+      button.addEventListener("keydown", handleTabKeydown);
     }
     for (const button of document.querySelectorAll("[data-lang]")) {
       button.addEventListener("click", () => {

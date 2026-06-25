@@ -15,60 +15,54 @@
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Exponential Idle ミニゲーム攻略・ソルバー">
     <meta name="twitter:description" content="Exponential IdleのArrow、15-Puzzle、Torusをブラウザ上で解ける、日本語・英語対応の攻略ソルバーです。">
-    <title>Exponential Idle ミニゲーム攻略・ソルバー | trinitrotorol</title>
+    <title>Exponential Idle ミニゲーム盤面ソルバー | trinitrotorol</title>
     <link rel="stylesheet" href="site.css">
   </head>
   <body>
-    <div class="game-backdrop" aria-hidden="true">
-      <div class="stats-strip">
-        <span><i>dt</i> = 32.69</span>
-        <span><i>b</i> = 10.216</span>
-        <span><i>f(t)</i> = $ee5.3308</span>
-        <span><i>x</i> = 3.7711e9</span>
-      </div>
-      <div class="formula-line">f(t + dt) = f(t) x e<sup>b x dt</sup></div>
-      <div class="graph-line"></div>
-    </div>
-
     <main class="phone-shell">
       <header class="game-header">
-        <button class="close-button" type="button" title="Close">x</button>
         <p class="game-kicker">Exponential Idle</p>
-        <h1 data-i18n="appTitle">ミニゲーム攻略</h1>
-        <p class="game-copy" data-i18n="appLead">ゲーム画面に近い見た目で、盤面を入力して解法を確認できます。</p>
-        <div class="language-toggle" aria-label="Language">
+        <h1 data-i18n="appTitle">Exponential Idle ミニゲーム盤面ソルバー</h1>
+        <p class="game-copy" data-i18n="appLead">現在の盤面を入力して、次にどのマスを操作するかを確認できます。</p>
+        <div class="language-toggle" data-i18n-aria-label="languageToggleLabel" aria-label="言語切替">
           <button type="button" class="is-active" data-lang="ja">日本語</button>
           <button type="button" data-lang="en">English</button>
         </div>
       </header>
 
-      <nav class="game-tabs" aria-label="Minigames">
-        <button type="button" class="is-active" data-game="arrow">Arrow</button>
-        <button type="button" data-game="fifteen">15-Puzzle</button>
-        <button type="button" data-game="torus">Torus</button>
+      <nav class="game-tabs" role="tablist" data-i18n-aria-label="tabListLabel" aria-label="パズル切替">
+        <button type="button" class="is-active" id="arrow-tab" role="tab" aria-selected="true" aria-controls="arrow-panel" tabindex="0" data-game="arrow">Arrow</button>
+        <button type="button" id="fifteen-tab" role="tab" aria-selected="false" aria-controls="fifteen-panel" tabindex="-1" data-game="fifteen">15-Puzzle</button>
+        <button type="button" id="torus-tab" role="tab" aria-selected="false" aria-controls="torus-panel" tabindex="-1" data-game="torus">Torus</button>
       </nav>
 
-      <section class="game-panel is-active" id="arrow-panel" data-panel="arrow">
+      <section class="game-panel is-active" id="arrow-panel" role="tabpanel" aria-labelledby="arrow-tab" data-panel="arrow">
         <div class="panel-title">
           <h2 data-i18n="arrowTitle">矢印パズル</h2>
-          <p data-i18n="arrowHelp">ゲームの現在盤面と同じ向きになるまで、各マスをタップしてください。入力中は周囲のマスは回転しません。</p>
-          <div class="timer-grid">
-            <span data-i18n="timeLabel">時間</span><strong>00:00.000</strong>
-            <span data-i18n="bestLabel">最高記録</span><strong>00:05.560</strong>
-          </div>
+          <p data-i18n="arrowHelp">入力では、各マスをゲーム内の現在向きに合わせます。解答後は、ゲーム内で押すマスを順番に確認します。</p>
+          <details class="recommendation">
+            <summary data-i18n="recommendedSettings">使う前のおすすめ設定</summary>
+            <ul>
+              <li data-i18n="arrowSettingVisual">Visual Scheme: Greyscale + Numbers</li>
+              <li data-i18n="arrowSettingAnimation">Animation: 無効</li>
+              <li data-i18n="arrowSettingInput">盤面入力中は、各マスを現在の向きに合わせるだけです</li>
+              <li data-i18n="arrowSettingNoRotate">ゲーム内のように周囲のマスは回転しません</li>
+            </ul>
+          </details>
         </div>
         <div class="solver-grid">
           <aside class="control-panel">
             <label><span data-i18n="difficultyLabel">難易度</span><select id="arrow-difficulty"></select></label>
-            <div class="button-row">
+            <p class="control-note" data-i18n="arrowNote">入力中のタップは入力だけを変更します。解答ステップの強調マスはゲーム内で押すマスです。</p>
+          </aside>
+          <div class="board-wrap">
+            <div id="arrow-status" class="board-status" aria-live="polite"></div>
+            <div id="arrow-board" class="board-stage" role="group" data-i18n-aria-label="arrowBoardLabel" aria-label="Arrow盤面入力"></div>
+            <div class="button-row action-row">
               <button class="game-button primary" type="button" id="arrow-solve" data-i18n="solveButton">解く</button>
               <button class="game-button" type="button" id="arrow-random" data-i18n="shuffleButton">シャッフル</button>
               <button class="game-button danger" type="button" id="arrow-reset" data-i18n="resetButton">リセット</button>
             </div>
-          </aside>
-          <div class="board-wrap">
-            <div id="arrow-status" class="board-status" aria-live="polite"></div>
-            <div id="arrow-board" class="board-stage"></div>
           </div>
           <aside class="result-panel">
             <h3 data-i18n="solutionTitle">解法</h3>
@@ -77,29 +71,34 @@
         </div>
       </section>
 
-      <section class="game-panel" id="fifteen-panel" data-panel="fifteen">
+      <section class="game-panel" id="fifteen-panel" role="tabpanel" aria-labelledby="fifteen-tab" data-panel="fifteen" hidden>
         <div class="panel-title">
           <h2 data-i18n="fifteenTitle">15パズル</h2>
-          <p data-i18n="fifteenHelp">四角をスライドして数字を順番通りに並べます。空白は0で入力します。</p>
-          <div class="timer-grid">
-            <span data-i18n="timeLabel">時間</span><strong>00:00.000</strong>
-            <span data-i18n="bestLabel">最高記録</span><strong>01:28.317</strong>
-          </div>
+          <p data-i18n="fifteenHelp">数字を空白へ移動しながら順番通りに並べます。入力では0または空欄を空白として扱います。</p>
+          <details class="recommendation">
+            <summary data-i18n="recommendedSettings">使う前のおすすめ設定</summary>
+            <ul>
+              <li data-i18n="fifteenSettingVisual">Visual Scheme: Fringe</li>
+              <li data-i18n="fifteenSettingHover">Hover/Slide Control: 有効</li>
+              <li data-i18n="fifteenSettingAnimation">Animation: 無効</li>
+              <li data-i18n="fifteenSettingBlank">空白はこのサイトでは空欄として表示します</li>
+            </ul>
+          </details>
         </div>
         <div class="solver-grid">
           <aside class="control-panel">
             <label><span data-i18n="difficultyLabel">難易度</span><select id="fifteen-difficulty"></select></label>
-            <div class="button-row">
-              <button class="game-button primary" type="button" id="fifteen-solve" data-i18n="solveButton">解く</button>
-              <button class="game-button" type="button" id="fifteen-random" data-i18n="shuffleButton">シャッフル</button>
-              <button class="game-button danger" type="button" id="fifteen-reset" data-i18n="resetButton">リセット</button>
-            </div>
             <p id="fifteen-input-error" class="input-error" role="alert"></p>
             <p class="control-note" data-i18n="fifteenNote">Hardは5x5です。最適解ではなく、層を固定して解く実用手順を出します。</p>
           </aside>
           <div class="board-wrap">
             <div id="fifteen-status" class="board-status" aria-live="polite"></div>
-            <div id="fifteen-board" class="board-stage"></div>
+            <div id="fifteen-board" class="board-stage" role="group" data-i18n-aria-label="fifteenBoardLabel" aria-label="15パズル盤面入力"></div>
+            <div class="button-row action-row">
+              <button class="game-button primary" type="button" id="fifteen-solve" data-i18n="solveButton">解く</button>
+              <button class="game-button" type="button" id="fifteen-random" data-i18n="shuffleButton">シャッフル</button>
+              <button class="game-button danger" type="button" id="fifteen-reset" data-i18n="resetButton">リセット</button>
+            </div>
           </div>
           <aside class="result-panel">
             <h3 data-i18n="solutionTitle">解法</h3>
@@ -108,29 +107,34 @@
         </div>
       </section>
 
-      <section class="game-panel" id="torus-panel" data-panel="torus">
+      <section class="game-panel" id="torus-panel" role="tabpanel" aria-labelledby="torus-tab" data-panel="torus" hidden>
         <div class="panel-title">
           <h2 data-i18n="torusTitle">トーラスパズル</h2>
-          <p data-i18n="torusHelp">行または列を巡回シフトして、左上から昇順に並べます。</p>
-          <div class="timer-grid">
-            <span data-i18n="timeLabel">時間</span><strong>00:00.000</strong>
-            <span data-i18n="bestLabel">最高記録</span><strong>00:22.000</strong>
-          </div>
+          <p data-i18n="torusHelp">行または列を巡回シフトして、左上から昇順に並べます。操作表示の行・列番号は1始まりです。</p>
+          <details class="recommendation">
+            <summary data-i18n="recommendedSettings">使う前のおすすめ設定</summary>
+            <ul>
+              <li data-i18n="torusSettingVisual">Visual Scheme: Insertion</li>
+              <li data-i18n="torusSettingHover">Hover/Slide Control: 有効</li>
+              <li data-i18n="torusSettingAnimation">Animation: 無効</li>
+              <li data-i18n="torusSettingIndex">行・列番号はこのサイトでは1始まりで表示します</li>
+            </ul>
+          </details>
         </div>
         <div class="solver-grid">
           <aside class="control-panel">
             <label><span data-i18n="difficultyLabel">難易度</span><select id="torus-difficulty"></select></label>
-            <div class="button-row">
-              <button class="game-button primary" type="button" id="torus-solve" data-i18n="solveButton">解く</button>
-              <button class="game-button" type="button" id="torus-random" data-i18n="shuffleButton">シャッフル</button>
-              <button class="game-button danger" type="button" id="torus-reset" data-i18n="resetButton">リセット</button>
-            </div>
             <p id="torus-input-error" class="input-error" role="alert"></p>
             <p class="control-note" data-i18n="torusNote">Easyは3x3、Mediumは5x5、Hardは6x6です。</p>
           </aside>
           <div class="board-wrap">
             <div id="torus-status" class="board-status" aria-live="polite"></div>
-            <div id="torus-board" class="board-stage"></div>
+            <div id="torus-board" class="board-stage" role="group" data-i18n-aria-label="torusBoardLabel" aria-label="Torus盤面入力"></div>
+            <div class="button-row action-row">
+              <button class="game-button primary" type="button" id="torus-solve" data-i18n="solveButton">解く</button>
+              <button class="game-button" type="button" id="torus-random" data-i18n="shuffleButton">シャッフル</button>
+              <button class="game-button danger" type="button" id="torus-reset" data-i18n="resetButton">リセット</button>
+            </div>
           </div>
           <aside class="result-panel">
             <h3 data-i18n="solutionTitle">解法</h3>
