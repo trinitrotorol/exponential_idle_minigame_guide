@@ -38,3 +38,37 @@ test("recommended settings copy is not rendered in the main HTML", () => {
   assert.equal(html.includes("Hover/Slide Control"), false);
   assert.equal(html.includes("Animation"), false);
 });
+
+test("Arrow display values are one-based for every direction count", () => {
+  assert.deepEqual([0, 1].map(S.ui.arrowDisplayValue), [1, 2]);
+  assert.deepEqual([0, 1, 2, 3].map(S.ui.arrowDisplayValue), [1, 2, 3, 4]);
+  assert.deepEqual([0, 1, 2, 3, 4, 5].map(S.ui.arrowDisplayValue), [1, 2, 3, 4, 5, 6]);
+});
+
+test("Arrow display mode storage values normalize to supported modes", () => {
+  assert.equal(S.ui.normalizeArrowDisplayMode("numbers"), "numbers");
+  assert.equal(S.ui.normalizeArrowDisplayMode("arrows"), "arrows");
+  assert.equal(S.ui.normalizeArrowDisplayMode("both"), "both");
+  assert.equal(S.ui.normalizeArrowDisplayMode("surprise"), "numbers");
+  assert.equal(S.ui.normalizeArrowDisplayMode(null), "numbers");
+});
+
+test("Arrow press-count badges mark only pressed cells without next-step copy", () => {
+  const counts = S.ui.createArrowPressCounts([0, 0, 3, 6, 6, 6], 8);
+  assert.deepEqual(counts, [2, 0, 0, 1, 0, 0, 3, 0]);
+  assert.equal(S.ui.arrowPressBadgeText(counts[0]), "×2");
+  assert.equal(S.ui.arrowPressBadgeText(counts[1]), "");
+  assert.equal(S.ui.arrowPressBadgeText(counts[6]), "×3");
+  assert.equal(S.ui.arrowPressBadgeText(counts[6]).includes("Next"), false);
+  assert.equal(S.ui.arrowPressBadgeText(counts[6]).includes("次"), false);
+});
+
+test("Arrow display helpers do not alter solver results", () => {
+  const board = S.arrow.scrambleArrowPuzzle("medium", 24, S.util.createSeededRandom(20260626));
+  const before = S.arrow.solveArrowPuzzle({ difficulty: "medium", initial: board }).answer.operations;
+  for (const mode of S.ui.ARROW_DISPLAY_MODES) {
+    assert.equal(S.ui.normalizeArrowDisplayMode(mode), mode);
+  }
+  const after = S.arrow.solveArrowPuzzle({ difficulty: "medium", initial: board }).answer.operations;
+  assert.deepEqual(after, before);
+});

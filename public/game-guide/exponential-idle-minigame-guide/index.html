@@ -26,7 +26,7 @@
           <span>Exponential Idle</span>
           <span data-i18n="appTitleSuffix">ミニゲーム盤面ソルバー</span>
         </h1>
-        <p class="game-copy" data-i18n="appLead">現在の盤面を入力して、次にどのマスを操作するかを確認できます。</p>
+        <p class="game-copy" data-i18n="appLead">盤面を入力して、次の操作だけを確認できます。</p>
         <div class="language-toggle" data-i18n-aria-label="languageToggleLabel" aria-label="言語切替">
           <button type="button" class="is-active" data-lang="ja">日本語</button>
           <button type="button" data-lang="en">English</button>
@@ -42,12 +42,15 @@
       <section class="game-panel is-active" id="arrow-panel" role="tabpanel" aria-labelledby="arrow-tab" data-panel="arrow">
         <div class="panel-title">
           <h2 data-puzzle-label="arrow">矢印パズル</h2>
-          <p data-i18n="arrowHelp">入力では、各マスをゲーム内の現在向きに合わせます。解答後は、ゲーム内で押すマスを順番に確認します。</p>
+          <p data-i18n="arrowHelp">盤面入力では各マスの表示だけを合わせます。解答後、押すマスと回数を表示します。</p>
         </div>
         <div class="solver-grid">
           <aside class="control-panel">
-            <label><span data-i18n="difficultyLabel">難易度</span><select id="arrow-difficulty"></select></label>
-            <p class="control-note" data-i18n="arrowNote">入力中のタップは入力だけを変更します。解答ステップの強調マスはゲーム内で押すマスです。</p>
+            <div class="two-cols arrow-controls">
+              <label><span data-i18n="difficultyLabel">難易度</span><select id="arrow-difficulty"></select></label>
+              <label><span data-i18n="displayLabel">表示</span><select id="arrow-display-mode"></select></label>
+            </div>
+            <p class="control-note" data-i18n="arrowNote">表示された数字や矢印を、ゲーム内の現在の向きに合わせます。</p>
           </aside>
           <div class="board-wrap">
             <div id="arrow-status" class="board-status" aria-live="polite"></div>
