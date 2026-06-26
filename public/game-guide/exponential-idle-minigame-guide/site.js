@@ -998,6 +998,32 @@
     return count > 0 ? `×${count}` : "";
   }
 
+  function actionDirectionSymbol(direction) {
+    return { L: "←", R: "→", U: "↑", D: "↓" }[direction] || "";
+  }
+
+  function torusActionData(op) {
+    const info = getTorusOperationInfo(op);
+    return {
+      axis: info.axis,
+      index: info.index,
+      direction: info.direction,
+      symbol: actionDirectionSymbol(info.direction),
+      amount: info.amount,
+    };
+  }
+
+  function fifteenActionData(board, size, move) {
+    const step = getFifteenStep(board, size, move);
+    return {
+      tile: step.tile,
+      blankDirection: step.move,
+      blankSymbol: actionDirectionSymbol(step.move),
+      from: step.from,
+      to: step.to,
+    };
+  }
+
   const solvers = {
     GAME_SPECS,
     getGameSpec,
@@ -1047,6 +1073,9 @@
       arrowDisplayValue,
       createArrowPressCounts,
       arrowPressBadgeText,
+      actionDirectionSymbol,
+      torusActionData,
+      fifteenActionData,
       oneBasedPosition,
       fitCellSize,
     },
@@ -1088,6 +1117,7 @@
       solveButton: "解く",
       shuffleButton: "シャッフル",
       resetButton: "完成盤面",
+      resetButtonShort: "完成",
       resetButtonAria: "完成盤面に戻す",
       arrowSolutionTitle: "押すマスと回数",
       fifteenSolutionTitle: "次に押す数字",
@@ -1109,7 +1139,7 @@
       previousStep: "前",
       nextStep: "次",
       lastStep: "最後",
-      restoreInput: "入力に戻す",
+      restoreInput: "入力",
       firstStepAria: "最初の手順を表示",
       previousStepAria: "前の手順を表示",
       nextStepAria: "次の手順を表示",
@@ -1117,6 +1147,7 @@
       restoreInputAria: "入力盤面に戻す",
       stepCounter: "手順",
       completed: "完了済み",
+      completedShort: "完了",
       incomplete: "未完了",
       arrowOrderNote: "順番は自由です。表示された回数だけ押してください。",
       arrowCheckSteps: "確認用ステップ",
@@ -1129,6 +1160,13 @@
       taps: "タップ回数",
       blankMoves: "空白の動き",
       torusOps: "操作",
+      fifteenPasteHint: "複数行貼り付け可。空白は0または空欄。",
+      torusPasteHint: "複数行貼り付け可。1〜n²を入力。",
+      nextTileShort: "次の数字",
+      blankMoveShort: "空白",
+      stepPosition: "{current} / {total}",
+      torusRowAction: "{index}行目を{direction}へ{amount}",
+      torusColumnAction: "{index}列目を{direction}へ{amount}",
       row: "行",
       col: "列",
       up: "上",
@@ -1147,10 +1185,10 @@
       fifteenInputLabel: "{position}、値 {value}。0から{max}までを入力できます。",
       fifteenBlankInputLabel: "{position}、空白。0から{max}までを入力できます。",
       torusInputLabel: "{position}、値 {value}。1から{max}までを入力できます。",
-      duplicateNumbers: "数字が重複しています",
-      missingNumbers: "数字が不足しています",
+      duplicateNumbers: "重複があります",
+      missingNumbers: "不足があります",
       outOfRangeNumbers: "範囲外の数字があります",
-      pasteValueCountMismatch: "貼り付けた値の数が盤面サイズと一致しません",
+      pasteValueCountMismatch: "貼り付け数が違います",
       moreMoves: "件を省略",
       invalidDifficulty: "未対応の難易度です。",
       invalidArrowSpec: "未対応のArrow設定です。",
@@ -1188,6 +1226,7 @@
       solveButton: "Solve",
       shuffleButton: "Shuffle",
       resetButton: "Solved board",
+      resetButtonShort: "Solved",
       resetButtonAria: "Reset to the solved board",
       arrowSolutionTitle: "Cells to Press",
       fifteenSolutionTitle: "Next Tile",
@@ -1217,6 +1256,7 @@
       restoreInputAria: "Restore the input board",
       stepCounter: "Step",
       completed: "Complete",
+      completedShort: "Done",
       incomplete: "Incomplete",
       arrowOrderNote: "Order does not matter. Press each marked cell the shown number of times.",
       arrowCheckSteps: "Check steps",
@@ -1229,6 +1269,13 @@
       taps: "tap counts",
       blankMoves: "blank moves",
       torusOps: "operations",
+      fifteenPasteHint: "Paste multiple lines. Use 0 or blank for the empty cell.",
+      torusPasteHint: "Paste multiple lines. Use 1 to n².",
+      nextTileShort: "Next tile",
+      blankMoveShort: "Blank",
+      stepPosition: "{current} / {total}",
+      torusRowAction: "Row {index} {symbol} {amount}",
+      torusColumnAction: "Col {index} {symbol} {amount}",
       row: "row",
       col: "col",
       up: "up",
@@ -1247,10 +1294,10 @@
       fifteenInputLabel: "{position}, value {value}. Enter a value from 0 to {max}.",
       fifteenBlankInputLabel: "{position}, blank. Enter a value from 0 to {max}.",
       torusInputLabel: "{position}, value {value}. Enter a value from 1 to {max}.",
-      duplicateNumbers: "Numbers are duplicated",
-      missingNumbers: "Numbers are missing",
+      duplicateNumbers: "Duplicates found",
+      missingNumbers: "Missing numbers",
       outOfRangeNumbers: "Numbers are out of range",
-      pasteValueCountMismatch: "The pasted value count does not match the board size",
+      pasteValueCountMismatch: "Paste count mismatch",
       moreMoves: "more",
       invalidDifficulty: "Unsupported difficulty.",
       invalidArrowSpec: "Unsupported Arrow configuration.",
@@ -1348,6 +1395,37 @@
     }
     status.hidden = false;
     status.innerHTML = `<strong>${t("statusLabel")}:</strong> ${statusText(state.solveStatus)}${detail ? `<br>${detail}` : ""}`;
+  }
+
+  function setActionCard(id, options) {
+    const root = byId(id);
+    const variant = options.variant || "idle";
+    root.className = `next-action-card is-${variant}`;
+    root.replaceChildren();
+
+    const title = document.createElement("p");
+    title.className = "next-action-title";
+    title.textContent = options.title || t("nextOperation");
+
+    const main = document.createElement("p");
+    main.className = options.big ? "next-action-main is-big" : "next-action-main";
+    main.textContent = options.main || t("pending");
+
+    root.append(title, main);
+
+    if (options.symbol) {
+      const symbol = document.createElement("p");
+      symbol.className = "next-action-symbol";
+      symbol.textContent = options.symbol;
+      root.append(symbol);
+    }
+
+    if (options.meta) {
+      const meta = document.createElement("p");
+      meta.className = "next-action-meta";
+      meta.textContent = options.meta;
+      root.append(meta);
+    }
   }
 
   function validationMessage(validation) {
@@ -1699,19 +1777,14 @@
     const counter = document.createElement("p");
     counter.className = "operation-copy";
     counter.innerHTML = `<strong>${t("stepCounter")}:</strong> ${state.currentStep} / ${state.solution.length}`;
-    const buttons = document.createElement("div");
-    buttons.className = "playback-buttons";
-    const specs = [
-      [t("firstStep"), t("firstStepAria"), () => onMove(0), state.currentStep === 0],
-      [t("previousStep"), t("previousStepAria"), () => onMove(state.currentStep - 1), state.currentStep === 0],
-      [t("nextStep"), t("nextStepAria"), () => onMove(state.currentStep + 1), state.currentStep >= state.solution.length],
-      [t("lastStep"), t("lastStepAria"), () => onMove(state.solution.length), state.currentStep >= state.solution.length],
-      [t("restoreInput"), t("restoreInputAria"), () => onRestore(), false],
-    ];
-    for (const [label, ariaLabel, action, disabled] of specs) {
+    const mainButtons = document.createElement("div");
+    mainButtons.className = "playback-buttons playback-buttons-main";
+    const secondaryButtons = document.createElement("div");
+    secondaryButtons.className = "playback-buttons playback-buttons-secondary";
+    const makeButton = ([label, ariaLabel, action, disabled, role]) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "game-button";
+      button.className = role === "main" ? "game-button primary" : "game-button secondary";
       button.textContent = label;
       button.setAttribute("aria-label", ariaLabel);
       button.disabled = disabled;
@@ -1720,9 +1793,18 @@
         event.stopPropagation();
         window.setTimeout(action, 0);
       });
-      buttons.append(button);
-    }
-    wrapper.append(counter, buttons);
+      return button;
+    };
+    [
+      [t("previousStep"), t("previousStepAria"), () => onMove(state.currentStep - 1), state.currentStep === 0, "main"],
+      [t("nextStep"), t("nextStepAria"), () => onMove(state.currentStep + 1), state.currentStep >= state.solution.length, "main"],
+    ].forEach((spec) => mainButtons.append(makeButton(spec)));
+    [
+      [t("firstStep"), t("firstStepAria"), () => onMove(0), state.currentStep === 0, "secondary"],
+      [t("lastStep"), t("lastStepAria"), () => onMove(state.solution.length), state.currentStep >= state.solution.length, "secondary"],
+      [t("restoreInput"), t("restoreInputAria"), () => onRestore(), false, "secondary"],
+    ].forEach((spec) => secondaryButtons.append(makeButton(spec)));
+    wrapper.append(counter, mainButtons, secondaryButtons);
     return wrapper;
   }
 
@@ -1936,6 +2018,49 @@
     return `${tt("moveTileIntoBlank", { tile: step.tile })} (${tt("blankMove", { direction: directionText(move) })})`;
   }
 
+  function renderFifteenActionCard(message = "") {
+    if (message && fifteenState.solveStatus !== "solved") {
+      setActionCard("fifteen-action-card", {
+        variant: "error",
+        title: t("statusError"),
+        main: message,
+      });
+      return;
+    }
+    if (fifteenState.solveStatus !== "solved") {
+      setActionCard("fifteen-action-card", {
+        variant: "idle",
+        title: t("fifteenSolutionTitle"),
+        main: t("pending"),
+      });
+      return;
+    }
+    if (fifteenState.currentStep >= fifteenState.solution.length) {
+      setActionCard("fifteen-action-card", {
+        variant: "complete",
+        title: t("fifteenSolutionTitle"),
+        main: t("completedShort"),
+        meta: tt("stepPosition", { current: fifteenState.solution.length, total: fifteenState.solution.length }),
+      });
+      return;
+    }
+    const data = S.ui.fifteenActionData(
+      fifteenState.previewBoard,
+      fifteenSize,
+      fifteenState.solution[fifteenState.currentStep],
+    );
+    setActionCard("fifteen-action-card", {
+      variant: "solved",
+      title: t("nextTileShort"),
+      main: String(data.tile),
+      big: true,
+      meta: `${t("blankMoveShort")}: ${directionText(data.blankDirection)} · ${tt("stepPosition", {
+        current: fifteenState.currentStep + 1,
+        total: fifteenState.solution.length,
+      })}`,
+    });
+  }
+
   function moveFifteenPlayback(step) {
     movePlayback(fifteenState, step, (board, move) => S.fifteen.applyFifteenStep(board, fifteenSize, move));
     renderFifteenBoard();
@@ -1949,6 +2074,7 @@
   function renderFifteenPlayback(message = "") {
     const root = byId("fifteen-result");
     renderFifteenStatus(message);
+    renderFifteenActionCard(message);
     root.replaceChildren();
     if (message && fifteenState.solveStatus !== "solved") {
       const p = document.createElement("p");
@@ -2148,6 +2274,52 @@
     return describeTorusOperation(torusState.solution[torusState.currentStep]);
   }
 
+  function formatTorusActionMain(data) {
+    const key = data.axis === "row" ? "torusRowAction" : "torusColumnAction";
+    return tt(key, {
+      index: data.index,
+      direction: directionText(data.direction),
+      symbol: data.symbol,
+      amount: data.amount,
+    });
+  }
+
+  function renderTorusActionCard(message = "") {
+    if (message && torusState.solveStatus !== "solved") {
+      setActionCard("torus-action-card", {
+        variant: "error",
+        title: t("statusError"),
+        main: message,
+      });
+      return;
+    }
+    if (torusState.solveStatus !== "solved") {
+      setActionCard("torus-action-card", {
+        variant: "idle",
+        title: t("torusSolutionTitle"),
+        main: t("pending"),
+      });
+      return;
+    }
+    if (torusState.currentStep >= torusState.solution.length) {
+      setActionCard("torus-action-card", {
+        variant: "complete",
+        title: t("torusSolutionTitle"),
+        main: t("completedShort"),
+        meta: tt("stepPosition", { current: torusState.solution.length, total: torusState.solution.length }),
+      });
+      return;
+    }
+    const data = S.ui.torusActionData(torusState.solution[torusState.currentStep]);
+    setActionCard("torus-action-card", {
+      variant: "solved",
+      title: t("nextOperation"),
+      main: formatTorusActionMain(data),
+      symbol: `${data.symbol} ${data.amount}`,
+      meta: tt("stepPosition", { current: torusState.currentStep + 1, total: torusState.solution.length }),
+    });
+  }
+
   function moveTorusPlayback(step) {
     movePlayback(torusState, step, (board, op) => S.torus.applyTorusOperation(board, op));
     renderTorusBoard();
@@ -2161,6 +2333,7 @@
   function renderTorusPlayback(message = "") {
     const root = byId("torus-result");
     renderTorusStatus(message);
+    renderTorusActionCard(message);
     root.replaceChildren();
     if (message && torusState.solveStatus !== "solved") {
       const p = document.createElement("p");

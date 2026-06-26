@@ -76,16 +76,18 @@
         <div class="solver-grid">
           <aside class="control-panel">
             <label><span data-i18n="difficultyLabel">難易度</span><select id="fifteen-difficulty"></select></label>
-            <p id="fifteen-input-error" class="input-error" role="alert"></p>
             <p class="control-note" data-i18n="fifteenNote">Hardは5x5です。最適解ではなく、層を固定して解く実用手順を出します。</p>
           </aside>
           <div class="board-wrap">
             <div id="fifteen-status" class="board-status" aria-live="polite"></div>
+            <div id="fifteen-action-card" class="next-action-card is-idle" aria-live="polite"></div>
             <div id="fifteen-board" class="board-stage" role="group" data-puzzle-board-label="fifteen" aria-label="15パズル盤面入力"></div>
-            <div class="button-row action-row">
+            <p id="fifteen-input-error" class="input-error board-error" role="alert"></p>
+            <p class="paste-hint" data-i18n="fifteenPasteHint">複数行貼り付け可。空白は0または空欄。</p>
+            <div class="button-row action-row action-row-primary">
               <button class="game-button primary" type="button" id="fifteen-solve" data-i18n="solveButton">解く</button>
               <button class="game-button" type="button" id="fifteen-random" data-i18n="shuffleButton">シャッフル</button>
-              <button class="game-button danger" type="button" id="fifteen-reset" data-i18n="resetButton" data-i18n-aria-label="resetButtonAria">完成盤面</button>
+              <button class="game-button secondary" type="button" id="fifteen-reset" data-i18n="resetButtonShort" data-i18n-aria-label="resetButtonAria">完成</button>
             </div>
           </div>
           <aside class="result-panel">
@@ -103,16 +105,18 @@
         <div class="solver-grid">
           <aside class="control-panel">
             <label><span data-i18n="difficultyLabel">難易度</span><select id="torus-difficulty"></select></label>
-            <p id="torus-input-error" class="input-error" role="alert"></p>
             <p class="control-note" data-i18n="torusNote">Easyは3x3、Mediumは5x5、Hardは6x6です。</p>
           </aside>
           <div class="board-wrap">
             <div id="torus-status" class="board-status" aria-live="polite"></div>
+            <div id="torus-action-card" class="next-action-card is-idle" aria-live="polite"></div>
             <div id="torus-board" class="board-stage" role="group" data-puzzle-board-label="torus" aria-label="トーラスパズル盤面入力"></div>
-            <div class="button-row action-row">
+            <p id="torus-input-error" class="input-error board-error" role="alert"></p>
+            <p class="paste-hint" data-i18n="torusPasteHint">複数行貼り付け可。1〜n²を入力。</p>
+            <div class="button-row action-row action-row-primary">
               <button class="game-button primary" type="button" id="torus-solve" data-i18n="solveButton">解く</button>
               <button class="game-button" type="button" id="torus-random" data-i18n="shuffleButton">シャッフル</button>
-              <button class="game-button danger" type="button" id="torus-reset" data-i18n="resetButton" data-i18n-aria-label="resetButtonAria">完成盤面</button>
+              <button class="game-button secondary" type="button" id="torus-reset" data-i18n="resetButtonShort" data-i18n-aria-label="resetButtonAria">完成</button>
             </div>
           </div>
           <aside class="result-panel">
