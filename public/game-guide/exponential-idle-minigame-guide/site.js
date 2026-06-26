@@ -976,6 +976,28 @@
     return Math.max(minSize, Math.min(maxSize, size));
   }
 
+  const ARROW_DISPLAY_MODES = Object.freeze(["numbers", "arrows", "both"]);
+
+  function normalizeArrowDisplayMode(value) {
+    return ARROW_DISPLAY_MODES.includes(value) ? value : "numbers";
+  }
+
+  function arrowDisplayValue(value) {
+    return value + 1;
+  }
+
+  function createArrowPressCounts(solution, cellCount) {
+    const counts = Array.from({ length: cellCount }, () => 0);
+    for (const cell of solution) {
+      if (Number.isInteger(cell) && cell >= 0 && cell < cellCount) counts[cell] += 1;
+    }
+    return counts;
+  }
+
+  function arrowPressBadgeText(count) {
+    return count > 0 ? `×${count}` : "";
+  }
+
   const solvers = {
     GAME_SPECS,
     getGameSpec,
@@ -1018,7 +1040,16 @@
       mergeTorusOperations,
     },
     input: { parseBoardValues, analyzePermutation, validateFifteenInput, validateTorusInput, validatePastedValues },
-    ui: { PUZZLE_LABELS, oneBasedPosition, fitCellSize },
+    ui: {
+      PUZZLE_LABELS,
+      ARROW_DISPLAY_MODES,
+      normalizeArrowDisplayMode,
+      arrowDisplayValue,
+      createArrowPressCounts,
+      arrowPressBadgeText,
+      oneBasedPosition,
+      fitCellSize,
+    },
     util: { modValue, cloneMatrix, createSeededRandom },
   };
 
@@ -1046,6 +1077,10 @@
       fifteenHelp: "空白は0または空欄です。解答後、次に動かす数字を表示します。",
       torusHelp: "行・列番号は1始まりです。解答後、動かす行または列と方向を表示します。",
       difficultyLabel: "難易度",
+      displayLabel: "表示",
+      displayNumbers: "数字",
+      displayArrows: "矢印",
+      displayBoth: "両方",
       easy: "Easy",
       medium: "Medium",
       hard: "Hard",
@@ -1058,7 +1093,7 @@
       fifteenSolutionTitle: "次に押す数字",
       torusSolutionTitle: "次の操作",
       sourceNote: "参考: Exponential Idle GuidesのMinigamesページと公開ソルバー実装。",
-      arrowNote: "入力タップは盤面だけを変えます。強調マスをゲーム内で押します。",
+      arrowNote: "表示された数字や矢印を、ゲーム内の現在の向きに合わせます。",
       fifteenNote: "Hardは5x5。最適解ではなく実用手順です。",
       torusNote: "Easyは3x3、Mediumは5x5、Hardは6x6です。",
       boardInputLabel: "{puzzle}盤面入力",
@@ -1083,12 +1118,12 @@
       stepCounter: "手順",
       completed: "完了済み",
       incomplete: "未完了",
-      arrowOrderNote: "タップ順は任意。ただしステップ表示では確認しやすい順に表示しています。",
+      arrowOrderNote: "順番は自由です。表示された回数だけ押してください。",
+      arrowCheckSteps: "確認用ステップ",
       totalTaps: "総タップ数",
       pressedCells: "押すマス数",
       currentStep: "現在ステップ",
       tapCell: "ゲーム内で押すマス",
-      nextBadge: "次",
       remainingTaps: "残り",
       directionState: "向き",
       taps: "タップ回数",
@@ -1106,8 +1141,9 @@
       shiftRow: "{index}行目を{direction}へ{amount}",
       shiftColumn: "{index}列目を{direction}へ{amount}",
       cellPosition: "{row}行{col}列",
-      arrowInputCellLabel: "{position}、現在の向き {value}。入力操作: このマスだけを次の向きへ変更します。",
-      arrowNextCellLabel: "{position}、現在の向き {value}。次にゲーム内で押すマスです。",
+      arrowInputCellLabel: "{position}、表示 {value}。入力操作: このマスだけを次の向きへ変更します。",
+      arrowSolvedCellLabel: "{position}、表示 {value}。ゲーム内で{count}回押します。",
+      arrowSolvedCellNoPressLabel: "{position}、表示 {value}。このマスは押しません。",
       fifteenInputLabel: "{position}、値 {value}。0から{max}までを入力できます。",
       fifteenBlankInputLabel: "{position}、空白。0から{max}までを入力できます。",
       torusInputLabel: "{position}、値 {value}。1から{max}までを入力できます。",
@@ -1141,6 +1177,10 @@
       fifteenHelp: "Use 0 or an empty cell for the blank. After solving, the next tile to move is shown.",
       torusHelp: "Rows and columns are 1-based. After solving, the row or column and direction are shown.",
       difficultyLabel: "Difficulty",
+      displayLabel: "Display",
+      displayNumbers: "Numbers",
+      displayArrows: "Arrows",
+      displayBoth: "Both",
       easy: "Easy",
       medium: "Medium",
       hard: "Hard",
@@ -1153,7 +1193,7 @@
       fifteenSolutionTitle: "Next Tile",
       torusSolutionTitle: "Next Move",
       sourceNote: "References: Exponential Idle Guides Minigames page and public solver implementations.",
-      arrowNote: "Input taps only edit the board. Press highlighted cells in the game.",
+      arrowNote: "Match the shown numbers or arrows to the current in-game directions.",
       fifteenNote: "Hard is 5x5. The solver returns a practical route.",
       torusNote: "Easy is 3x3, Medium is 5x5, and Hard is 6x6.",
       boardInputLabel: "{puzzle} board input",
@@ -1178,12 +1218,12 @@
       stepCounter: "Step",
       completed: "Complete",
       incomplete: "Incomplete",
-      arrowOrderNote: "Tap order is arbitrary. The step display uses an easy-to-check order.",
+      arrowOrderNote: "Order does not matter. Press each marked cell the shown number of times.",
+      arrowCheckSteps: "Check steps",
       totalTaps: "Total taps",
       pressedCells: "Pressed cells",
       currentStep: "Current step",
       tapCell: "Cell to press in the game",
-      nextBadge: "Next",
       remainingTaps: "remaining",
       directionState: "direction",
       taps: "tap counts",
@@ -1201,8 +1241,9 @@
       shiftRow: "Shift row {index} {direction} by {amount}",
       shiftColumn: "Shift column {index} {direction} by {amount}",
       cellPosition: "row {row}, column {col}",
-      arrowInputCellLabel: "{position}, current direction {value}. Input action: change only this cell to the next direction.",
-      arrowNextCellLabel: "{position}, current direction {value}. This is the next cell to press in the game.",
+      arrowInputCellLabel: "{position}, display {value}. Input action: change only this cell to the next direction.",
+      arrowSolvedCellLabel: "{position}, display {value}. Press this cell {count} times in the game.",
+      arrowSolvedCellNoPressLabel: "{position}, display {value}. Do not press this cell.",
       fifteenInputLabel: "{position}, value {value}. Enter a value from 0 to {max}.",
       fifteenBlankInputLabel: "{position}, blank. Enter a value from 0 to {max}.",
       torusInputLabel: "{position}, value {value}. Enter a value from 1 to {max}.",
@@ -1229,9 +1270,14 @@
   };
 
   const GAME_SPECS = S.GAME_SPECS;
+  const ARROW_DISPLAY_STORAGE_KEY = "minigameGuideArrowDisplayMode";
 
   let lang = localStorage.getItem("minigameGuideLang") || "ja";
   let activeGame = "arrow";
+  let arrowDisplayMode = S.ui.normalizeArrowDisplayMode(localStorage.getItem(ARROW_DISPLAY_STORAGE_KEY));
+  if (localStorage.getItem(ARROW_DISPLAY_STORAGE_KEY) !== arrowDisplayMode) {
+    localStorage.setItem(ARROW_DISPLAY_STORAGE_KEY, arrowDisplayMode);
+  }
 
   function createPlaybackState(board) {
     return {
@@ -1385,6 +1431,22 @@
     select.value = keys.includes(current) ? current : "easy";
   }
 
+  function fillArrowDisplayMode() {
+    const select = byId("arrow-display-mode");
+    const labels = {
+      numbers: t("displayNumbers"),
+      arrows: t("displayArrows"),
+      both: t("displayBoth"),
+    };
+    select.replaceChildren(...S.ui.ARROW_DISPLAY_MODES.map((mode) => {
+      const option = document.createElement("option");
+      option.value = mode;
+      option.textContent = labels[mode];
+      return option;
+    }));
+    select.value = arrowDisplayMode;
+  }
+
   function applyLanguage() {
     document.documentElement.lang = lang;
     document.title = t("documentTitle");
@@ -1406,6 +1468,7 @@
     fillDifficulty(byId("arrow-difficulty"), "arrow");
     fillDifficulty(byId("fifteen-difficulty"), "fifteen");
     fillDifficulty(byId("torus-difficulty"), "torus");
+    fillArrowDisplayMode();
     renderAllBoards();
   }
 
@@ -1487,15 +1550,14 @@
     root.replaceChildren();
     if (spec.shape === "square") {
       const board = document.createElement("div");
-      board.className = "square-board";
-      setBoardCells(board, spec.width);
-      board.style.gridTemplateColumns = `repeat(${spec.width}, minmax(0, 1fr))`;
+      board.className = `square-board arrow-board arrow-board-${arrowState.difficulty} arrow-mode-${arrowDisplayMode}`;
+      board.style.gridTemplateColumns = `repeat(${spec.width}, var(--arrow-cell))`;
       arrowState.previewBoard.forEach((value, index) => board.append(arrowButton(value, index)));
       root.append(board);
       return;
     }
     const board = document.createElement("div");
-    board.className = "hex-board";
+    board.className = `hex-board arrow-board arrow-board-${arrowState.difficulty} arrow-mode-${arrowDisplayMode}`;
     let index = 0;
     for (const rowLength of rows) {
       const row = document.createElement("div");
@@ -1516,30 +1578,42 @@
   function arrowButton(value, index) {
     const button = document.createElement("button");
     button.type = "button";
-    button.className = `arrow-tile${value ? " is-lit" : ""}`;
-    const nextTap = arrowState.solution[arrowState.currentStep];
-    const isNextTap = nextTap === index;
-    if (isNextTap) {
-      button.classList.add("is-next-action");
-    }
+    button.className = `arrow-tile arrow-mode-${arrowDisplayMode}${value ? " is-lit" : ""}`;
+    const pressCounts = arrowState.solveStatus === "solved"
+      ? S.ui.createArrowPressCounts(arrowState.solution, arrowCellCount())
+      : [];
+    const pressCount = pressCounts[index] || 0;
+    if (pressCount) button.classList.add("is-marked-action");
     const position = arrowCellPositionLabel(index);
-    button.setAttribute("aria-label", tt(isNextTap ? "arrowNextCellLabel" : "arrowInputCellLabel", { position, value }));
+    const displayValue = S.ui.arrowDisplayValue(value);
+    button.setAttribute("aria-label", tt(
+      arrowState.solveStatus === "solved"
+        ? (pressCount ? "arrowSolvedCellLabel" : "arrowSolvedCellNoPressLabel")
+        : "arrowInputCellLabel",
+      { position, value: displayValue, count: pressCount },
+    ));
     button.setAttribute("aria-describedby", "arrow-status");
-    const icon = document.createElement("span");
-    icon.className = "arrow-icon";
-    icon.style.setProperty("--arrow-angle", `${arrowAngle(value)}deg`);
-    const valueText = document.createElement("span");
-    valueText.className = "arrow-value";
-    valueText.textContent = String(value);
-    const label = document.createElement("span");
-    label.className = "sr-only";
-    label.textContent = button.getAttribute("aria-label");
-    button.replaceChildren(icon, valueText, label);
-    const remaining = arrowState.solution.slice(arrowState.currentStep).filter((cell) => cell === index).length;
-    if (isNextTap || remaining > 1) {
+    const children = [];
+    if (arrowDisplayMode !== "numbers") {
+      const icon = document.createElement("span");
+      icon.className = "arrow-icon";
+      icon.style.setProperty("--arrow-angle", `${arrowAngle(value)}deg`);
+      icon.setAttribute("aria-hidden", "true");
+      children.push(icon);
+    }
+    if (arrowDisplayMode !== "arrows") {
+      const valueText = document.createElement("span");
+      valueText.className = arrowDisplayMode === "numbers" ? "arrow-main-value" : "arrow-value";
+      valueText.textContent = String(displayValue);
+      valueText.setAttribute("aria-hidden", "true");
+      children.push(valueText);
+    }
+    button.replaceChildren(...children);
+    if (pressCount) {
       const badge = document.createElement("span");
-      badge.className = "tap-badge";
-      badge.textContent = remaining > 1 ? `${t("nextBadge")} x${remaining}` : t("nextBadge");
+      badge.className = "tap-badge press-count-badge";
+      badge.textContent = S.ui.arrowPressBadgeText(pressCount);
+      badge.setAttribute("aria-hidden", "true");
       button.append(badge);
     }
     button.addEventListener("click", () => {
@@ -1664,12 +1738,14 @@
 
   function renderArrowPlayback(message = "") {
     const root = byId("arrow-result");
-    const nextCell = arrowState.solution[arrowState.currentStep];
-    const nextText = nextCell === undefined
-      ? t("completed")
-      : `${t("tapCell")} #${nextCell + 1}`;
+    const pressCounts = S.ui.createArrowPressCounts(arrowState.solution, arrowCellCount());
+    const pressedCells = pressCounts.filter(Boolean).length;
     const detail = arrowState.solveStatus === "solved"
-      ? `<strong>${t("nextOperation")}:</strong> ${nextText}`
+      ? [
+        `<strong>${t("totalTaps")}:</strong> ${arrowState.solution.length}`,
+        `<strong>${t("pressedCells")}:</strong> ${pressedCells}`,
+        t("arrowOrderNote"),
+      ].join("<br>")
       : message;
     setStatus("arrow-status", arrowState, detail);
     root.replaceChildren();
@@ -1686,19 +1762,19 @@
       return;
     }
     const summary = document.createElement("p");
-    const pressedCells = new Set(arrowState.solution).size;
     summary.innerHTML = [
       `<strong>${t("totalTaps")}:</strong> ${arrowState.solution.length}`,
       `<strong>${t("pressedCells")}:</strong> ${pressedCells}`,
-      `<strong>${t("currentStep")}:</strong> ${arrowState.currentStep}`,
-      `<strong>${arrowState.currentStep === arrowState.solution.length ? t("completed") : t("incomplete")}</strong>`,
     ].join("<br>");
     const note = document.createElement("p");
+    note.className = "arrow-order-note";
     note.textContent = t("arrowOrderNote");
-    const operation = document.createElement("p");
-    operation.className = "operation-copy";
-    operation.innerHTML = `<strong>${t("nextOperation")}:</strong> ${nextText}`;
-    root.append(summary, note, operation, createPlaybackControls(arrowState, moveArrowPlayback, restoreArrowInput));
+    const details = document.createElement("details");
+    details.className = "arrow-step-details";
+    const stepsSummary = document.createElement("summary");
+    stepsSummary.textContent = t("arrowCheckSteps");
+    details.append(stepsSummary, createPlaybackControls(arrowState, moveArrowPlayback, restoreArrowInput));
+    root.append(summary, note, details);
   }
 
   function renderFifteenBoard() {
@@ -2120,10 +2196,17 @@
     fillDifficulty(byId("arrow-difficulty"), "arrow");
     fillDifficulty(byId("fifteen-difficulty"), "fifteen");
     fillDifficulty(byId("torus-difficulty"), "torus");
+    fillArrowDisplayMode();
     byId("arrow-difficulty").addEventListener("change", (event) => {
       arrowState = { difficulty: event.target.value, ...createPlaybackState(S.arrow.createArrowGoal(event.target.value)) };
       ensureArrowValues(true);
       renderAllBoards();
+    });
+    byId("arrow-display-mode").addEventListener("change", (event) => {
+      arrowDisplayMode = S.ui.normalizeArrowDisplayMode(event.target.value);
+      localStorage.setItem(ARROW_DISPLAY_STORAGE_KEY, arrowDisplayMode);
+      fillArrowDisplayMode();
+      renderArrowBoard();
     });
     byId("fifteen-difficulty").addEventListener("change", (event) => {
       fifteenDifficulty = event.target.value;
