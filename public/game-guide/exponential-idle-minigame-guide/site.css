@@ -229,6 +229,11 @@ select {
   background: var(--ok);
 }
 
+.game-button.secondary {
+  background: #101010;
+  color: var(--muted);
+}
+
 .game-button.danger {
   background: var(--danger);
 }
@@ -269,6 +274,75 @@ select {
 .board-status.is-solving {
   border-color: var(--warn);
   background: #171206;
+}
+
+.next-action-card {
+  display: grid;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 12px;
+  border: 1px solid #333333;
+  background: #0a0a0a;
+  color: var(--muted);
+  text-align: center;
+}
+
+.next-action-card.is-solved {
+  border-color: #4f8a59;
+  background: #0b1710;
+}
+
+.next-action-card.is-complete {
+  border-color: #4f8a59;
+  background: #0b1710;
+}
+
+.next-action-card.is-error {
+  border-color: #b14a4a;
+  background: #1a0b0b;
+}
+
+.next-action-card.is-idle {
+  padding: 8px 10px;
+  background: #080808;
+}
+
+.next-action-title,
+.next-action-main,
+.next-action-symbol,
+.next-action-meta {
+  margin: 0;
+}
+
+.next-action-title {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.next-action-main {
+  color: var(--text);
+  font-size: clamp(1.15rem, 3vw, 1.55rem);
+  font-weight: 900;
+}
+
+.next-action-main.is-big {
+  font-size: clamp(2.6rem, 12vw, 4.3rem);
+  line-height: 1.08;
+}
+
+.next-action-symbol {
+  color: var(--focus);
+  font-size: clamp(2rem, 8vw, 3.2rem);
+  font-weight: 900;
+  line-height: 1.08;
+}
+
+.next-action-meta {
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 700;
 }
 
 .board-stage {
@@ -367,6 +441,18 @@ select {
   font-family: "Segoe UI", sans-serif;
   font-size: 0.9rem;
   font-weight: 700;
+}
+
+.board-error {
+  margin: 8px 0 0;
+  text-align: center;
+}
+
+.paste-hint {
+  margin: 8px 0 0;
+  color: var(--dim);
+  font-size: 0.88rem;
+  text-align: center;
 }
 
 .arrow-tile,
@@ -480,6 +566,17 @@ select {
   box-shadow: 0 0 0 3px rgba(248, 208, 113, 0.45);
 }
 
+.torus-board .is-next-action {
+  border-color: #8e7a37;
+  background: #19170d;
+  box-shadow: inset 0 0 0 2px rgba(248, 208, 113, 0.18);
+}
+
+.fifteen-board .is-next-action {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 3px rgba(248, 208, 113, 0.45);
+}
+
 .is-marked-action {
   border-color: var(--focus);
   box-shadow: 0 0 0 3px rgba(248, 208, 113, 0.38);
@@ -491,6 +588,7 @@ select {
 
 .is-preview-blank {
   border-style: dashed;
+  border-color: #777777;
 }
 
 .tap-badge {
@@ -540,10 +638,44 @@ select {
   gap: 8px;
 }
 
+.playback-buttons-main {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.playback-buttons-main .game-button {
+  min-height: 48px;
+  font-size: 1.05rem;
+}
+
+.playback-buttons-secondary {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.playback-buttons-secondary .game-button {
+  min-height: 36px;
+  font-size: 0.9rem;
+}
+
 .playback-buttons .game-button {
   width: 100%;
   padding-right: 8px;
   padding-left: 8px;
+}
+
+.action-row-primary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.action-row-primary .game-button {
+  width: 100%;
+  min-height: 38px;
+}
+
+.action-row-primary .primary {
+  grid-column: 1 / -1;
+  min-height: 48px;
+  font-size: 1.08rem;
 }
 
 .operation-copy {
@@ -622,6 +754,29 @@ select {
   .game-tabs button {
     min-width: 86px;
     flex: 1 1 86px;
+  }
+
+  .next-action-card {
+    padding: 10px 8px;
+  }
+
+  .next-action-main {
+    font-size: 1.12rem;
+  }
+
+  .next-action-main.is-big {
+    font-size: clamp(2.8rem, 16vw, 4rem);
+  }
+
+  .next-action-symbol {
+    font-size: clamp(2.2rem, 13vw, 3rem);
+  }
+
+  .playback-buttons-secondary .game-button,
+  .action-row-primary .game-button {
+    padding-right: 6px;
+    padding-left: 6px;
+    white-space: nowrap;
   }
 
   .board-stage {

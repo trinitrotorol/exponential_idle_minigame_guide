@@ -72,3 +72,44 @@ test("Arrow display helpers do not alter solver results", () => {
   const after = S.arrow.solveArrowPuzzle({ difficulty: "medium", initial: board }).answer.operations;
   assert.deepEqual(after, before);
 });
+
+test("Torus action data uses one-based row and column labels with symbols", () => {
+  assert.deepEqual(S.ui.torusActionData({ type: "L", index: 2, amount: 2 }), {
+    axis: "row",
+    index: 3,
+    direction: "L",
+    symbol: "←",
+    amount: 2,
+  });
+  assert.deepEqual(S.ui.torusActionData({ type: "U", index: 4, amount: 1 }), {
+    axis: "column",
+    index: 5,
+    direction: "U",
+    symbol: "↑",
+    amount: 1,
+  });
+  assert.equal(S.ui.actionDirectionSymbol("R"), "→");
+  assert.equal(S.ui.actionDirectionSymbol("D"), "↓");
+});
+
+test("15-Puzzle action data exposes the next tile and blank direction", () => {
+  assert.deepEqual(S.ui.fifteenActionData([1, 2, 3, 4, 5, 6, 7, 0, 8], 3, "R"), {
+    tile: 8,
+    blankDirection: "R",
+    blankSymbol: "→",
+    from: 8,
+    to: 7,
+  });
+});
+
+test("short action labels and paste hints are wired into the page", () => {
+  const html = fs.readFileSync(path.join(publicDir, "index.html"), "utf8");
+  const script = fs.readFileSync(path.join(publicDir, "site.js"), "utf8");
+  assert.equal(html.includes('data-i18n="resetButtonShort"'), true);
+  assert.equal(html.includes('data-i18n="fifteenPasteHint"'), true);
+  assert.equal(html.includes('data-i18n="torusPasteHint"'), true);
+  assert.equal(script.includes('resetButtonShort: "完成"'), true);
+  assert.equal(script.includes('restoreInput: "入力"'), true);
+  assert.equal(script.includes('Paste multiple lines. Use 0 or blank for the empty cell.'), true);
+  assert.equal(script.includes('Paste multiple lines. Use 1 to n².'), true);
+});
