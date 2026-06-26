@@ -21,6 +21,19 @@
     }),
   });
 
+  const PUZZLE_LABELS = Object.freeze({
+    ja: Object.freeze({
+      arrow: "矢印パズル",
+      fifteen: "15パズル",
+      torus: "トーラスパズル",
+    }),
+    en: Object.freeze({
+      arrow: "Arrow Puzzle",
+      fifteen: "15-Puzzle",
+      torus: "Torus Puzzle",
+    }),
+  });
+
   function solverError(code) {
     const error = new Error(code);
     error.code = code;
@@ -1005,7 +1018,7 @@
       mergeTorusOperations,
     },
     input: { parseBoardValues, analyzePermutation, validateFifteenInput, validateTorusInput, validatePastedValues },
-    ui: { oneBasedPosition, fitCellSize },
+    ui: { PUZZLE_LABELS, oneBasedPosition, fitCellSize },
     util: { modValue, cloneMatrix, createSeededRandom },
   };
 
@@ -1025,31 +1038,13 @@
   const text = {
     ja: {
       documentTitle: "Exponential Idle ミニゲーム盤面ソルバー | trinitrotorol",
-      appTitle: "Exponential Idle ミニゲーム盤面ソルバー",
-      appLead: "現在の盤面を入力して、次にどのマスを操作するかを確認できます。",
+      appTitleSuffix: "ミニゲーム盤面ソルバー",
+      appLead: "盤面を入力して、次の操作だけを確認できます。",
       languageToggleLabel: "言語切替",
       tabListLabel: "パズル切替",
-      arrowTitle: "矢印パズル",
-      arrowHelp: "入力では、各マスをゲーム内の現在向きに合わせます。解答後は、ゲーム内で押すマスを順番に確認します。",
-      fifteenTitle: "15パズル",
-      fifteenHelp: "数字を空白へ移動しながら順番通りに並べます。入力では0または空欄を空白として扱います。",
-      torusTitle: "トーラスパズル",
-      torusHelp: "行または列を巡回シフトして、左上から昇順に並べます。操作表示の行・列番号は1始まりです。",
-      recommendedSettings: "使う前のおすすめ設定",
-      arrowSettingVisual: "Visual Scheme: Greyscale + Numbers",
-      arrowSettingAnimation: "Animation: 無効",
-      arrowSettingInput: "盤面入力中は、各マスを現在の向きに合わせるだけです",
-      arrowSettingNoRotate: "ゲーム内のように周囲のマスは回転しません",
-      fifteenSettingVisual: "Visual Scheme: Fringe",
-      fifteenSettingHover: "Hover/Slide Control: 有効",
-      fifteenSettingAnimation: "Animation: 無効",
-      fifteenSettingBlank: "空白はこのサイトでは空欄として表示します",
-      torusSettingVisual: "Visual Scheme: Insertion",
-      torusSettingHover: "Hover/Slide Control: 有効",
-      torusSettingAnimation: "Animation: 無効",
-      torusSettingIndex: "行・列番号はこのサイトでは1始まりで表示します",
-      timeLabel: "時間",
-      bestLabel: "最高記録",
+      arrowHelp: "盤面入力では各マスの表示だけを合わせます。解答後、押すマスと回数を表示します。",
+      fifteenHelp: "空白は0または空欄です。解答後、次に動かす数字を表示します。",
+      torusHelp: "行・列番号は1始まりです。解答後、動かす行または列と方向を表示します。",
       difficultyLabel: "難易度",
       easy: "Easy",
       medium: "Medium",
@@ -1057,29 +1052,34 @@
       expert: "Expert",
       solveButton: "解く",
       shuffleButton: "シャッフル",
-      resetButton: "リセット",
-      solutionTitle: "解法",
+      resetButton: "完成盤面",
+      resetButtonAria: "完成盤面に戻す",
+      arrowSolutionTitle: "押すマスと回数",
+      fifteenSolutionTitle: "次に押す数字",
+      torusSolutionTitle: "次の操作",
       sourceNote: "参考: Exponential Idle GuidesのMinigamesページと公開ソルバー実装。",
-      arrowNote: "入力中のタップは入力だけを変更します。解答ステップの強調マスはゲーム内で押すマスです。",
-      fifteenNote: "Hardは5x5です。最適解ではなく、層を固定して解く実用手順を出します。",
+      arrowNote: "入力タップは盤面だけを変えます。強調マスをゲーム内で押します。",
+      fifteenNote: "Hardは5x5。最適解ではなく実用手順です。",
       torusNote: "Easyは3x3、Mediumは5x5、Hardは6x6です。",
-      arrowBoardLabel: "Arrow盤面入力",
-      fifteenBoardLabel: "15パズル盤面入力",
-      torusBoardLabel: "Torus盤面入力",
-      pending: "未計算",
+      boardInputLabel: "{puzzle}盤面入力",
+      pending: "解くと表示します",
       noSolution: "解が見つかりませんでした。",
       solvedIn: "手数",
       statusLabel: "状態",
-      statusIdle: "未計算",
-      statusSolving: "計算中",
+      statusSolving: "計算中…",
       statusSolved: "解答済み",
-      statusError: "入力にエラーがあります",
+      statusError: "エラー",
       nextOperation: "次の操作",
-      firstStep: "最初へ",
-      previousStep: "前へ",
-      nextStep: "次へ",
-      lastStep: "最後へ",
-      restoreInput: "入力盤面に戻す",
+      firstStep: "最初",
+      previousStep: "前",
+      nextStep: "次",
+      lastStep: "最後",
+      restoreInput: "入力に戻す",
+      firstStepAria: "最初の手順を表示",
+      previousStepAria: "前の手順を表示",
+      nextStepAria: "次の手順を表示",
+      lastStepAria: "最後の手順を表示",
+      restoreInputAria: "入力盤面に戻す",
       stepCounter: "手順",
       completed: "完了済み",
       incomplete: "未完了",
@@ -1133,31 +1133,13 @@
     },
     en: {
       documentTitle: "Exponential Idle Minigame Board Solver | trinitrotorol",
-      appTitle: "Exponential Idle Minigame Board Solver",
-      appLead: "Enter the current board and see which cell or line to operate next.",
+      appTitleSuffix: "Minigame Board Solver",
+      appLead: "Enter the board and check only the next operation.",
       languageToggleLabel: "Language",
       tabListLabel: "Puzzle selector",
-      arrowTitle: "Arrow Puzzle",
-      arrowHelp: "For input, set each cell to the current in-game direction. After solving, follow the cells to press in the game.",
-      fifteenTitle: "15-Puzzle",
-      fifteenHelp: "Move numbered tiles into the blank until the board is ordered. Use 0 or an empty cell for the blank.",
-      torusTitle: "Torus Puzzle",
-      torusHelp: "Cyclically shift rows or columns until the board is sorted. Row and column numbers shown here are 1-based.",
-      recommendedSettings: "Recommended settings before use",
-      arrowSettingVisual: "Visual Scheme: Greyscale + Numbers",
-      arrowSettingAnimation: "Animation: Off",
-      arrowSettingInput: "During board input, each tap only changes that cell to the current direction",
-      arrowSettingNoRotate: "Adjacent cells do not rotate like they do in the game",
-      fifteenSettingVisual: "Visual Scheme: Fringe",
-      fifteenSettingHover: "Hover/Slide Control: On",
-      fifteenSettingAnimation: "Animation: Off",
-      fifteenSettingBlank: "The blank is displayed as an empty cell on this site",
-      torusSettingVisual: "Visual Scheme: Insertion",
-      torusSettingHover: "Hover/Slide Control: On",
-      torusSettingAnimation: "Animation: Off",
-      torusSettingIndex: "Rows and columns are displayed as 1-based on this site",
-      timeLabel: "Time",
-      bestLabel: "Best Time",
+      arrowHelp: "Match only each cell's displayed direction. After solving, the cells to press and counts are shown.",
+      fifteenHelp: "Use 0 or an empty cell for the blank. After solving, the next tile to move is shown.",
+      torusHelp: "Rows and columns are 1-based. After solving, the row or column and direction are shown.",
       difficultyLabel: "Difficulty",
       easy: "Easy",
       medium: "Medium",
@@ -1165,29 +1147,34 @@
       expert: "Expert",
       solveButton: "Solve",
       shuffleButton: "Shuffle",
-      resetButton: "Reset",
-      solutionTitle: "Solution",
+      resetButton: "Solved board",
+      resetButtonAria: "Reset to the solved board",
+      arrowSolutionTitle: "Cells to Press",
+      fifteenSolutionTitle: "Next Tile",
+      torusSolutionTitle: "Next Move",
       sourceNote: "References: Exponential Idle Guides Minigames page and public solver implementations.",
-      arrowNote: "Input taps only edit the entered board. Highlighted solution steps are cells to press in the game.",
-      fifteenNote: "Hard is 5x5. The solver returns a practical layer-by-layer route, not an optimal route.",
+      arrowNote: "Input taps only edit the board. Press highlighted cells in the game.",
+      fifteenNote: "Hard is 5x5. The solver returns a practical route.",
       torusNote: "Easy is 3x3, Medium is 5x5, and Hard is 6x6.",
-      arrowBoardLabel: "Arrow board input",
-      fifteenBoardLabel: "15-Puzzle board input",
-      torusBoardLabel: "Torus board input",
-      pending: "Not calculated",
+      boardInputLabel: "{puzzle} board input",
+      pending: "Solve to show it",
       noSolution: "No solution was found.",
       solvedIn: "moves",
       statusLabel: "Status",
-      statusIdle: "Idle",
-      statusSolving: "Solving",
+      statusSolving: "Solving…",
       statusSolved: "Solved",
-      statusError: "Input has errors",
+      statusError: "Error",
       nextOperation: "Next operation",
       firstStep: "First",
-      previousStep: "Previous",
+      previousStep: "Prev",
       nextStep: "Next",
       lastStep: "Last",
-      restoreInput: "Restore input board",
+      restoreInput: "Input",
+      firstStepAria: "Show the first step",
+      previousStepAria: "Show the previous step",
+      nextStepAria: "Show the next step",
+      lastStepAria: "Show the last step",
+      restoreInputAria: "Restore the input board",
       stepCounter: "Step",
       completed: "Complete",
       incomplete: "Incomplete",
@@ -1281,6 +1268,14 @@
     }, t(key));
   }
 
+  function puzzleLabels(language = lang) {
+    return S.ui.PUZZLE_LABELS[language] || S.ui.PUZZLE_LABELS.en;
+  }
+
+  function puzzleLabel(game) {
+    return puzzleLabels()[game] || S.ui.PUZZLE_LABELS.en[game] || game;
+  }
+
   function byId(id) {
     return document.getElementById(id);
   }
@@ -1300,6 +1295,12 @@
   function setStatus(id, state, detail = "") {
     const status = byId(id);
     status.className = `board-status is-${state.solveStatus}`;
+    if (state.solveStatus === "idle" && !detail) {
+      status.hidden = true;
+      status.textContent = "";
+      return;
+    }
+    status.hidden = false;
     status.innerHTML = `<strong>${t("statusLabel")}:</strong> ${statusText(state.solveStatus)}${detail ? `<br>${detail}` : ""}`;
   }
 
@@ -1392,6 +1393,12 @@
     }
     for (const node of document.querySelectorAll("[data-i18n-aria-label]")) {
       node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+    }
+    for (const node of document.querySelectorAll("[data-puzzle-label]")) {
+      node.textContent = puzzleLabel(node.dataset.puzzleLabel);
+    }
+    for (const node of document.querySelectorAll("[data-puzzle-board-label]")) {
+      node.setAttribute("aria-label", tt("boardInputLabel", { puzzle: puzzleLabel(node.dataset.puzzleBoardLabel) }));
     }
     for (const button of document.querySelectorAll("[data-lang]")) {
       button.classList.toggle("is-active", button.dataset.lang === lang);
@@ -1621,17 +1628,18 @@
     const buttons = document.createElement("div");
     buttons.className = "playback-buttons";
     const specs = [
-      [t("firstStep"), () => onMove(0), state.currentStep === 0],
-      [t("previousStep"), () => onMove(state.currentStep - 1), state.currentStep === 0],
-      [t("nextStep"), () => onMove(state.currentStep + 1), state.currentStep >= state.solution.length],
-      [t("lastStep"), () => onMove(state.solution.length), state.currentStep >= state.solution.length],
-      [t("restoreInput"), () => onRestore(), false],
+      [t("firstStep"), t("firstStepAria"), () => onMove(0), state.currentStep === 0],
+      [t("previousStep"), t("previousStepAria"), () => onMove(state.currentStep - 1), state.currentStep === 0],
+      [t("nextStep"), t("nextStepAria"), () => onMove(state.currentStep + 1), state.currentStep >= state.solution.length],
+      [t("lastStep"), t("lastStepAria"), () => onMove(state.solution.length), state.currentStep >= state.solution.length],
+      [t("restoreInput"), t("restoreInputAria"), () => onRestore(), false],
     ];
-    for (const [label, action, disabled] of specs) {
+    for (const [label, ariaLabel, action, disabled] of specs) {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "game-button";
       button.textContent = label;
+      button.setAttribute("aria-label", ariaLabel);
       button.disabled = disabled;
       button.addEventListener("click", (event) => {
         event.preventDefault();

@@ -27,6 +27,10 @@ This repository focuses on an interactive, bilingual solver-oriented version rat
 - Support Japanese and English text switching.
 - Provide practical solve sequences for Arrow, 15-Puzzle, and Torus.
 
+## Localized Puzzle Labels
+
+The Japanese in-game names could not be verified from the local repository context. The site currently keeps the existing Japanese candidates in `PUZZLE_LABELS.ja` (`矢印パズル`, `15パズル`, `トーラスパズル`). When the Japanese game UI names are confirmed, update only `PUZZLE_LABELS.ja` in `site.js`.
+
 ## Implemented Game Specs
 
 - 15-Puzzle: Easy 3x3, Medium 4x4, Hard 5x5. The blank is stored as `0`; the solved board is ascending from the top-left with the blank in the bottom-right.
