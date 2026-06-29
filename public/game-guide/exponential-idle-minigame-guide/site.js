@@ -1122,6 +1122,8 @@
       arrowSolutionTitle: "押すマスと回数",
       fifteenSolutionTitle: "次に押す数字",
       torusSolutionTitle: "次の操作",
+      fifteenPlaybackTitle: "手順確認",
+      torusPlaybackTitle: "手順確認",
       sourceNote: "参考: Exponential Idle GuidesのMinigamesページと公開ソルバー実装。",
       arrowNote: "表示された数字や矢印を、ゲーム内の現在の向きに合わせます。",
       fifteenNote: "Hardは5x5。最適解ではなく実用手順です。",
@@ -1231,6 +1233,8 @@
       arrowSolutionTitle: "Cells to Press",
       fifteenSolutionTitle: "Next Tile",
       torusSolutionTitle: "Next Move",
+      fifteenPlaybackTitle: "Step Playback",
+      torusPlaybackTitle: "Step Playback",
       sourceNote: "References: Exponential Idle Guides Minigames page and public solver implementations.",
       arrowNote: "Match the shown numbers or arrows to the current in-game directions.",
       fifteenNote: "Hard is 5x5. The solver returns a practical route.",
@@ -1395,6 +1399,13 @@
     }
     status.hidden = false;
     status.innerHTML = `<strong>${t("statusLabel")}:</strong> ${statusText(state.solveStatus)}${detail ? `<br>${detail}` : ""}`;
+  }
+
+  function hideStatus(id, state) {
+    const status = byId(id);
+    status.className = `board-status is-${state.solveStatus}`;
+    status.hidden = true;
+    status.textContent = "";
   }
 
   function setActionCard(id, options) {
@@ -1781,10 +1792,11 @@
     mainButtons.className = "playback-buttons playback-buttons-main";
     const secondaryButtons = document.createElement("div");
     secondaryButtons.className = "playback-buttons playback-buttons-secondary";
-    const makeButton = ([label, ariaLabel, action, disabled, role]) => {
+    const makeButton = ([label, ariaLabel, action, disabled, role, extraClass]) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = role === "main" ? "game-button primary" : "game-button secondary";
+      if (extraClass) button.classList.add(extraClass);
       button.textContent = label;
       button.setAttribute("aria-label", ariaLabel);
       button.disabled = disabled;
@@ -1797,7 +1809,7 @@
     };
     [
       [t("previousStep"), t("previousStepAria"), () => onMove(state.currentStep - 1), state.currentStep === 0, "main"],
-      [t("nextStep"), t("nextStepAria"), () => onMove(state.currentStep + 1), state.currentStep >= state.solution.length, "main"],
+      [t("nextStep"), t("nextStepAria"), () => onMove(state.currentStep + 1), state.currentStep >= state.solution.length, "main", "is-next-step"],
     ].forEach((spec) => mainButtons.append(makeButton(spec)));
     [
       [t("firstStep"), t("firstStepAria"), () => onMove(0), state.currentStep === 0, "secondary"],
@@ -1968,10 +1980,11 @@
   }
 
   function renderFifteenStatus(message = "") {
-    const detail = fifteenState.solveStatus === "solved"
-      ? `<strong>${t("nextOperation")}:</strong> ${describeFifteenCurrentStep()}`
-      : message;
-    setStatus("fifteen-status", fifteenState, detail);
+    if (fifteenState.solveStatus === "solved" || (message && fifteenState.errorCodes.length)) {
+      hideStatus("fifteen-status", fifteenState);
+      return;
+    }
+    setStatus("fifteen-status", fifteenState, message);
   }
 
   function handleFifteenPaste(event) {
@@ -1981,6 +1994,8 @@
     const countCheck = S.input.validatePastedValues(values, fifteenSize * fifteenSize);
     if (!countCheck.valid) {
       event.preventDefault();
+      fifteenState.errorCodes = [countCheck.code];
+      fifteenState.invalidIndices = [];
       byId("fifteen-input-error").textContent = t(countCheck.code);
       fifteenState.solveStatus = "error";
       renderFifteenStatus(t(countCheck.code));
@@ -2019,7 +2034,7 @@
   }
 
   function renderFifteenActionCard(message = "") {
-    if (message && fifteenState.solveStatus !== "solved") {
+    if (message && fifteenState.solveStatus !== "solved" && !fifteenState.errorCodes.length) {
       setActionCard("fifteen-action-card", {
         variant: "error",
         title: t("statusError"),
@@ -2076,7 +2091,7 @@
     renderFifteenStatus(message);
     renderFifteenActionCard(message);
     root.replaceChildren();
-    if (message && fifteenState.solveStatus !== "solved") {
+    if (message && fifteenState.solveStatus !== "solved" && !fifteenState.errorCodes.length) {
       const p = document.createElement("p");
       p.textContent = message;
       root.append(p);
@@ -2090,10 +2105,7 @@
     }
     const summary = document.createElement("p");
     summary.innerHTML = `<strong>${t("blankMoves")}:</strong> ${fifteenState.solution.length} ${t("solvedIn")}`;
-    const operation = document.createElement("p");
-    operation.className = "operation-copy";
-    operation.innerHTML = `<strong>${t("nextOperation")}:</strong> ${describeFifteenCurrentStep()}`;
-    root.append(summary, operation, createPlaybackControls(fifteenState, moveFifteenPlayback, restoreFifteenInput));
+    root.append(summary, createPlaybackControls(fifteenState, moveFifteenPlayback, restoreFifteenInput));
   }
 
   function renderMoveResult(id, title, moves) {
@@ -2241,10 +2253,11 @@
   }
 
   function renderTorusStatus(message = "") {
-    const detail = torusState.solveStatus === "solved"
-      ? `<strong>${t("nextOperation")}:</strong> ${describeTorusCurrentStep()}`
-      : message;
-    setStatus("torus-status", torusState, detail);
+    if (torusState.solveStatus === "solved" || (message && torusState.errorCodes.length)) {
+      hideStatus("torus-status", torusState);
+      return;
+    }
+    setStatus("torus-status", torusState, message);
   }
 
   function handleTorusPaste(event) {
@@ -2254,6 +2267,8 @@
     const countCheck = S.input.validatePastedValues(values, torusSize * torusSize);
     if (!countCheck.valid) {
       event.preventDefault();
+      torusState.errorCodes = [countCheck.code];
+      torusState.invalidIndices = [];
       byId("torus-input-error").textContent = t(countCheck.code);
       torusState.solveStatus = "error";
       renderTorusStatus(t(countCheck.code));
@@ -2285,7 +2300,7 @@
   }
 
   function renderTorusActionCard(message = "") {
-    if (message && torusState.solveStatus !== "solved") {
+    if (message && torusState.solveStatus !== "solved" && !torusState.errorCodes.length) {
       setActionCard("torus-action-card", {
         variant: "error",
         title: t("statusError"),
@@ -2335,7 +2350,7 @@
     renderTorusStatus(message);
     renderTorusActionCard(message);
     root.replaceChildren();
-    if (message && torusState.solveStatus !== "solved") {
+    if (message && torusState.solveStatus !== "solved" && !torusState.errorCodes.length) {
       const p = document.createElement("p");
       p.textContent = message;
       root.append(p);
@@ -2349,10 +2364,7 @@
     }
     const summary = document.createElement("p");
     summary.innerHTML = `<strong>${t("torusOps")}:</strong> ${torusState.solution.length} ${t("solvedIn")}`;
-    const operation = document.createElement("p");
-    operation.className = "operation-copy";
-    operation.innerHTML = `<strong>${t("nextOperation")}:</strong> ${describeTorusCurrentStep()}`;
-    root.append(summary, operation, createPlaybackControls(torusState, moveTorusPlayback, restoreTorusInput));
+    root.append(summary, createPlaybackControls(torusState, moveTorusPlayback, restoreTorusInput));
   }
 
   function renderAllBoards() {

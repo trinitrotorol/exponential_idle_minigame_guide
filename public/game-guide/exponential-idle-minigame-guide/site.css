@@ -229,6 +229,11 @@ select {
   background: var(--ok);
 }
 
+.action-row .game-button.primary {
+  min-height: 48px;
+  font-size: 1.05rem;
+}
+
 .game-button.secondary {
   background: #101010;
   color: var(--muted);
@@ -236,6 +241,11 @@ select {
 
 .game-button.danger {
   background: var(--danger);
+}
+
+.game-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .board-wrap {
@@ -639,12 +649,17 @@ select {
 }
 
 .playback-buttons-main {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
 }
 
 .playback-buttons-main .game-button {
   min-height: 48px;
   font-size: 1.05rem;
+}
+
+.playback-buttons-main .is-next-step {
+  min-height: 52px;
+  border-color: var(--focus);
 }
 
 .playback-buttons-secondary {

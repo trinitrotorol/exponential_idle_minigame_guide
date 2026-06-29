@@ -113,3 +113,17 @@ test("short action labels and paste hints are wired into the page", () => {
   assert.equal(script.includes('Paste multiple lines. Use 0 or blank for the empty cell.'), true);
   assert.equal(script.includes('Paste multiple lines. Use 1 to n².'), true);
 });
+
+test("final UX audit keeps playback and next-action hierarchy clear", () => {
+  const html = fs.readFileSync(path.join(publicDir, "index.html"), "utf8");
+  const script = fs.readFileSync(path.join(publicDir, "site.js"), "utf8");
+  const css = fs.readFileSync(path.join(publicDir, "site.css"), "utf8");
+  assert.equal(script.includes('"is-next-step"'), true);
+  assert.equal(css.includes(".playback-buttons-main .is-next-step"), true);
+  assert.equal(html.includes('data-i18n="fifteenPlaybackTitle"'), true);
+  assert.equal(html.includes('data-i18n="torusPlaybackTitle"'), true);
+  assert.equal(script.includes('fifteenPlaybackTitle: "Step Playback"'), true);
+  assert.equal(script.includes("operation.innerHTML"), false);
+  assert.equal(script.includes("hideStatus(\"fifteen-status\""), true);
+  assert.equal(script.includes("hideStatus(\"torus-status\""), true);
+});
