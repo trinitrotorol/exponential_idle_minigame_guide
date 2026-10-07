@@ -734,6 +734,72 @@ select {
   text-align: center;
 }
 
+.site-nav,
+.site-footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  line-height: 1.7;
+}
+
+.site-nav {
+  margin-bottom: 26px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.site-nav a,
+.site-footer-links a,
+.site-context a {
+  color: #c5dcff;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  overflow-wrap: anywhere;
+}
+
+.site-nav a,
+.site-footer-links a {
+  padding: 6px 2px;
+}
+
+.site-context {
+  margin-top: 36px;
+  padding: 24px clamp(12px, 3vw, 28px);
+  border: 1px solid var(--line-soft);
+  background: var(--panel-soft);
+  font-size: 1rem;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+
+.site-context h2 {
+  font-size: clamp(1.3rem, 3vw, 1.7rem);
+}
+
+.site-context h3 {
+  margin-top: 24px;
+  font-size: 1.2rem;
+}
+
+.site-context ul,
+.site-context ol {
+  padding-left: 1.5em;
+}
+
+.site-context li + li {
+  margin-top: 8px;
+}
+
+.site-context > :last-child {
+  margin-bottom: 0;
+}
+
+.site-footer-links {
+  margin-bottom: 16px;
+  font-size: 1rem;
+}
+
 @media (max-width: 960px) {
   .solver-grid {
     grid-template-columns: 1fr;

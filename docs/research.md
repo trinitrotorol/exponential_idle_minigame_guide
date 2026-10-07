@@ -4,7 +4,7 @@ Research date: 2026-06-24
 
 ## Updated Finding
 
-The official community guide site has a Minigames page that covers 15-Puzzle, Torus, and Arrow strategies across the available difficulties:
+The community guide site has a Minigames page that covers 15-Puzzle, Torus, and Arrow strategies across the available difficulties:
 
 - https://exponential-idle-guides.netlify.app/guides/asd/
 
