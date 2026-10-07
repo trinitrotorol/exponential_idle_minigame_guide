@@ -21,6 +21,11 @@
   </head>
   <body>
     <main class="phone-shell">
+      <nav class="site-nav" data-i18n-aria-label="siteNavigation" aria-label="サイト内の案内">
+        <a href="/" data-i18n="homeLink">ホーム</a>
+        <a href="/game-guide/" data-i18n="guideLink">ゲーム攻略・ツール</a>
+        <a href="#how-to" data-i18n="howToLink">このツールの使い方</a>
+      </nav>
       <header class="game-header">
         <p class="game-kicker">Exponential Idle</p>
         <h1>
@@ -127,8 +132,42 @@
         </div>
       </section>
 
+      <section class="site-context" id="how-to" aria-labelledby="how-to-title">
+        <h2 id="how-to-title" data-i18n="howToTitle">使い方と対応範囲</h2>
+        <p data-i18n="toolContext">ゲーム内の盤面を手入力し、操作手順を確認するための個人制作ツールです。ゲームを自動操作する機能はありません。</p>
+        <ol>
+          <li data-i18n="howToSelect">パズルと難易度を選び、ゲーム内と同じ盤面に合わせます。矢印の入力操作は、そのマスの表示だけを変えます。</li>
+          <li data-i18n="howToSolve">「解く」を押します。15パズルの空白は0または空欄とし、数字の重複・不足が出たら入力を見直してください。</li>
+          <li data-i18n="howToFollow">矢印パズルは表示されたマスを指定回数押します。15パズル・トーラスパズルは手順を1つずつ進め、ゲーム側の盤面と照合します。</li>
+        </ol>
+        <h3 data-i18n="supportedTitle">対応する盤面</h3>
+        <ul>
+          <li data-i18n="supportedArrow">Arrow: Easy 3×3、Medium 4×4、Hard・Expert 37マスの六角形。表示は数字・矢印・両方から選べます。</li>
+          <li data-i18n="supportedFifteen">15-Puzzle: Easy 3×3、Medium 4×4、Hard 5×5。最短手数を保証するものではなく、Hardも実用的な手順を返します。</li>
+          <li data-i18n="supportedTorus">Torus: Easy 3×3、Medium 5×5、Hard 6×6。行・列の番号は1から数え、端の数字は反対側へ回り込みます。</li>
+        </ul>
+        <p data-i18n="toolLimits">盤面が一致しない場合は操作を止め、難易度と入力を確認してください。ゲームの更新による仕様変更には追従できていない場合があります。</p>
+        <h3 data-i18n="sourceTitle">参考資料と運営</h3>
+        <p data-i18n="sourceNote">ルールや攻略法の調査に参照したコミュニティガイドと、参照先・対応仕様を記録した開発資料を公開しています。</p>
+        <ul class="source-links">
+          <li><a href="https://exponential-idle-guides.netlify.app/guides/asd/" data-i18n="communityGuideLink">Exponential Idle Guides — Minigames（英語）</a></li>
+          <li><a href="https://github.com/trinitrotorol/exponential_idle_minigame_guide/blob/master/docs/research.md" data-i18n="researchLink">参照した公開ソルバーと実装仕様の調査記録</a></li>
+          <li><a href="https://github.com/trinitrotorol/exponential_idle_minigame_guide" data-i18n="sourceCodeLink">このツールのソースコード</a></li>
+        </ul>
+        <p data-i18n="unofficialNote">運営: trinitrotorol。Exponential Idleの開発元とは関係のない非公式ツールです。ゲーム名・商標などの権利は各権利者に帰属します。</p>
+        <p data-i18n="localDataNote">盤面の計算はブラウザ内で行います。言語と矢印の表示設定はこのブラウザに保存します。このページではCloudflare Web Analyticsによる表示速度などの計測を行っています。詳細はプライバシーポリシーをご覧ください。</p>
+        <p><a href="/contact/" data-i18n="reportLink">不具合・記載内容の連絡先</a></p>
+      </section>
+
       <footer class="game-footer">
-        <p data-i18n="sourceNote">参考: Exponential Idle GuidesのMinigamesページと公開ソルバー実装。</p>
+        <nav class="site-footer-links" data-i18n-aria-label="footerNavigation" aria-label="運営情報">
+          <a href="/" data-i18n="homeLink">ホーム</a>
+          <a href="/game-guide/" data-i18n="guideLink">ゲーム攻略・ツール</a>
+          <a href="/about/" data-i18n="aboutLink">このサイトについて</a>
+          <a href="/contact/" data-i18n="contactLink">お問い合わせ</a>
+          <a href="/privacy/" data-i18n="privacyLink">プライバシーポリシー</a>
+        </nav>
+        <p>© trinitrotorol</p>
       </footer>
     </main>
 
